@@ -38,7 +38,7 @@ class Settings(BaseSettings):
         return [o.strip() for o in self.cors_origins.split(",")]
 
     class Config:
-        env_file = ".env"
+        env_file = None   # never load .env in production — use env vars only
         extra = "ignore"
 
 
