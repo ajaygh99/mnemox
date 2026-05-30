@@ -17,7 +17,7 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
       memoryCount: 0,
       memories: [],
       installedAt: Date.now(),
-      backendUrl: 'http://localhost:8000',
+      backendUrl: 'https://mnemox-production.up.railway.app',
       apiKey: '',
       // Step 7: auth state
       authToken: null,

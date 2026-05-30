@@ -217,7 +217,7 @@
         <div class="settings-title">🔗 Backend Connection</div>
         <div class="field">
           <label>Backend URL</label>
-          <input id="s-backend-url" placeholder="http://localhost:8000" />
+          <input id="s-backend-url" placeholder="https://mnemox-production.up.railway.app" />
           <div class="field-hint">Your FastAPI server. Use Railway/Render URL in production.</div>
         </div>
         <div class="field">
@@ -282,7 +282,7 @@ function loadData() {
       { id: '2', content: 'Write a Python FastAPI endpoint for user auth', source: 'claude', capturedAt: Date.now() - 3600000 },
       { id: '3', content: 'How do I reduce AI API costs for my startup', source: 'gemini', capturedAt: Date.now() - 1800000 },
     ];
-    settings = { captureEnabled: true, injectEnabled: true, backendUrl: 'http://localhost:8000', apiKey: '' };
+    settings = { captureEnabled: true, injectEnabled: true, backendUrl: 'https://mnemox-production.up.railway.app', apiKey: '' };
     renderAll();
     return;
   }
