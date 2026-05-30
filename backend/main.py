@@ -38,7 +38,10 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"Mnemox API starting — env: {settings.app_env}")
-    await ensure_collection()
+    try:
+        await ensure_collection()
+    except Exception as e:
+        logger.warning(f"Qdrant init skipped (non-fatal): {e}")
     yield
     logger.info("Mnemox API shutting down")
 
