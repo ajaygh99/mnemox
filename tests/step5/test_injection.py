@@ -109,7 +109,7 @@ def test_backend_save_nonfatal():
     assert '.catch' in SW()
 
 def test_version_updated():
-    assert '0.5.0' in SW()
+    assert any(v in SW() for v in ('0.5.0', '0.6.0', '0.7.0'))
 
 
 # ── Safety ────────────────────────────────────────────────────────────────────

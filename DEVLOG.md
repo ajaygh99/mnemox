@@ -68,3 +68,26 @@
 ## Step 8 — Testing + Launch
 **Date:** TBD
 **Status:** 🔲 Pending
+
+## Step 7 — Supabase Auth + Stripe Billing + Team Memory (v0.7)
+
+### What was built
+- **auth.py**: JWT verification via Supabase (`decode_supabase_jwt`), `CurrentUser` dependency with `memory_namespace` (handles `team:{id}` shared vault), `require_plan()` factory for plan gating, legacy API key fallback
+- **billing.py**: Stripe integration — `get_or_create_customer`, `create_checkout_session`, `create_billing_portal_session`, `handle_stripe_webhook` (subscription.created/updated/deleted → updates Supabase app_metadata)
+- **config.py**: + `stripe_*` fields, `supabase_jwt_secret`
+- **models.py**: + `UserProfile`, `CheckoutRequest/Response`, `BillingPortalRequest/Response`, `PlansResponse`, `TeamInvite`, `TeamResponse`
+- **main.py**: All memory routes now use `get_current_user` dep. Free plan: 402 when limit (50) reached. New routes: `GET /auth/me`, `GET /billing/plans`, `POST /billing/checkout`, `POST /billing/portal`, `POST /billing/webhook`, `GET /team`, `POST /team/invite`
+- **supabase_schema_step7.sql**: `teams`, `team_members`, `subscriptions` tables with RLS
+- **extension/popup/login.html + login.js**: Full sign in / sign up UI, email confirmation flow, error states
+- **extension/background/service_worker.js**: Auth message handlers (`MNEMOX_AUTH_SIGNIN/SIGNUP/SIGNOUT/GET_STATE`), `getAuthHeaders()` uses Bearer JWT or falls back to X-API-Key, auth state persisted in chrome.storage
+- **extension/popup/popup.js + popup.html**: Auth gate on load (redirects to login.html if not signed in), plan badge (Free/Pro/Team), memory limit progress for Free, sign out button
+
+### Plans
+| Plan  | Price  | Memories | Features                    |
+|-------|--------|----------|-----------------------------|
+| Free  | $0     | 50       | All AI platforms            |
+| Pro   | $9/mo  | ∞        | + Semantic search, priority |
+| Team  | $29/mo | ∞        | + Shared vault, 10 members  |
+
+### Tests: 84 passed ✅
+### Git tag: v0.7

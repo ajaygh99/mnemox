@@ -1,7 +1,7 @@
-# models.py — Mnemox Pydantic Models (request/response schemas)
+# models.py — Mnemox Pydantic Models (Step 7: + auth/billing models)
 
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 
@@ -37,7 +37,7 @@ class MemoriesListResponse(BaseModel):
     total: int
 
 
-# ── Search Models (Step 4) ────────────────────────────────────────────────────
+# ── Search Models ─────────────────────────────────────────────────────────────
 
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=2000)
@@ -59,6 +59,68 @@ class SearchResponse(BaseModel):
     success: bool
     query: str
     results: list[SearchResult]
+
+
+# ── Auth Models (Step 7) ──────────────────────────────────────────────────────
+
+class UserProfile(BaseModel):
+    user_id: str
+    email: str
+    plan: str                       # "free" | "pro" | "team"
+    team_id: Optional[str] = None
+    memory_limit: int
+    memory_count: int = 0
+
+
+# ── Billing Models (Step 7) ───────────────────────────────────────────────────
+
+class CheckoutRequest(BaseModel):
+    plan: str = Field(..., pattern="^(pro|team)$")
+    success_url: str
+    cancel_url: str
+    team_id: Optional[str] = None
+
+
+class CheckoutResponse(BaseModel):
+    url: str
+
+
+class BillingPortalRequest(BaseModel):
+    return_url: str
+
+
+class BillingPortalResponse(BaseModel):
+    url: str
+
+
+class PlanInfo(BaseModel):
+    name: str
+    price_id: Optional[str]
+    memory_limit: Optional[int]
+    features: List[str]
+
+
+class PlansResponse(BaseModel):
+    plans: dict[str, PlanInfo]
+    current_plan: str
+
+
+# ── Team Models (Step 7) ──────────────────────────────────────────────────────
+
+class TeamInvite(BaseModel):
+    email: str = Field(..., pattern=r"^[^@]+@[^@]+\.[^@]+$")
+
+
+class TeamMember(BaseModel):
+    user_id: str
+    email: str
+    joined_at: str
+
+
+class TeamResponse(BaseModel):
+    team_id: str
+    members: List[TeamMember]
+    memory_namespace: str
 
 
 # ── Health Model ──────────────────────────────────────────────────────────────

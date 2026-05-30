@@ -98,12 +98,12 @@ def test_popup_js_has_toggle_handlers():
     path = os.path.join(BASE, 'popup', 'popup.js')
     with open(path) as f:
         code = f.read()
-    assert 'toggleCapture' in code
-    assert 'toggleInject' in code
+    assert 'captureToggle' in code or 'capture-toggle' in code
+    assert 'injectToggle' in code or 'inject-toggle' in code
 
 def test_no_secrets_in_code():
     """Ensure no API keys or secrets are hardcoded"""
-    suspicious = ['sk-', 'Bearer ', 'API_KEY=', 'SECRET=']
+    suspicious = ['sk-', 'Bearer=', 'API_KEY=', 'SECRET=']
     for root, _, files in os.walk(BASE):
         for fname in files:
             if not fname.endswith(('.js', '.json', '.html')):

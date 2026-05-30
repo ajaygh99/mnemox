@@ -1,7 +1,7 @@
 // service_worker.js — Mnemox Background Service Worker
-// Step 5: + Memory search via backend API, API config storage
+// Step 7: + Supabase Auth (JWT), Bearer token support, auth state management
 
-const MNEMOX_VERSION = '0.5.0';
+const MNEMOX_VERSION = '0.7.0';
 
 const AI_HOSTS = [
   'chat.openai.com', 'chatgpt.com',
@@ -17,9 +17,12 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
       memoryCount: 0,
       memories: [],
       installedAt: Date.now(),
-      // Backend config — user sets these in popup settings (Step 6)
       backendUrl: 'http://localhost:8000',
       apiKey: '',
+      // Step 7: auth state
+      authToken: null,
+      authUser: null,
+      authPlan: 'free',
     });
     console.log(`[Mnemox v${MNEMOX_VERSION}] Installed`);
   }
@@ -53,6 +56,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       handleUpdateSettings(message.payload, sendResponse);
       return true;
 
+    // ── Step 7: Auth messages ──────────────────────────────────────────────
+
+    case 'MNEMOX_AUTH_SIGNIN':
+      handleSignIn(message.payload, sendResponse);
+      return true;
+
+    case 'MNEMOX_AUTH_SIGNUP':
+      handleSignUp(message.payload, sendResponse);
+      return true;
+
+    case 'MNEMOX_AUTH_SIGNOUT':
+      handleSignOut(sendResponse);
+      return true;
+
+    case 'MNEMOX_AUTH_GET_STATE':
+      handleGetAuthState(sendResponse);
+      return true;
+
     case 'MNEMOX_PING':
       sendResponse({ status: 'ok', version: MNEMOX_VERSION });
       break;
@@ -62,11 +83,137 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-// ── Handlers ─────────────────────────────────────────────────────────────────
+// ── Auth Handlers (Step 7) ────────────────────────────────────────────────────
+
+async function handleSignIn(payload, sendResponse) {
+  try {
+    const { backendUrl } = await chrome.storage.local.get('backendUrl');
+    const { supabaseUrl, supabaseAnonKey } = await getSupabaseConfig(backendUrl);
+
+    const response = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseAnonKey,
+      },
+      body: JSON.stringify({ email: payload.email, password: payload.password }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return sendResponse({ success: false, error: data.error_description || data.msg || 'Sign in failed' });
+    }
+
+    // Store JWT + user info
+    await chrome.storage.local.set({
+      authToken: data.access_token,
+      authRefreshToken: data.refresh_token,
+      authUser: data.user,
+      authPlan: data.user?.app_metadata?.plan || 'free',
+      authExpiresAt: Date.now() + (data.expires_in * 1000),
+    });
+
+    sendResponse({ success: true, user: data.user });
+  } catch (err) {
+    console.error('[Mnemox SW] Sign in error:', err);
+    sendResponse({ success: false, error: err.message });
+  }
+}
+
+async function handleSignUp(payload, sendResponse) {
+  try {
+    const { backendUrl } = await chrome.storage.local.get('backendUrl');
+    const { supabaseUrl, supabaseAnonKey } = await getSupabaseConfig(backendUrl);
+
+    const response = await fetch(`${supabaseUrl}/auth/v1/signup`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseAnonKey,
+      },
+      body: JSON.stringify({ email: payload.email, password: payload.password }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return sendResponse({ success: false, error: data.error_description || data.msg || 'Sign up failed' });
+    }
+
+    // Check if email confirmation is needed
+    if (data.user && !data.session) {
+      return sendResponse({ success: true, needsConfirmation: true });
+    }
+
+    if (data.session) {
+      await chrome.storage.local.set({
+        authToken: data.session.access_token,
+        authRefreshToken: data.session.refresh_token,
+        authUser: data.user,
+        authPlan: 'free',
+        authExpiresAt: Date.now() + (data.session.expires_in * 1000),
+      });
+    }
+
+    sendResponse({ success: true, needsConfirmation: false });
+  } catch (err) {
+    console.error('[Mnemox SW] Sign up error:', err);
+    sendResponse({ success: false, error: err.message });
+  }
+}
+
+async function handleSignOut(sendResponse) {
+  await chrome.storage.local.set({
+    authToken: null,
+    authRefreshToken: null,
+    authUser: null,
+    authPlan: 'free',
+    authExpiresAt: null,
+  });
+  sendResponse({ success: true });
+}
+
+async function handleGetAuthState(sendResponse) {
+  const state = await chrome.storage.local.get([
+    'authToken', 'authUser', 'authPlan', 'authExpiresAt'
+  ]);
+
+  const isLoggedIn = !!(state.authToken && state.authExpiresAt && Date.now() < state.authExpiresAt);
+  sendResponse({
+    isLoggedIn,
+    user: isLoggedIn ? state.authUser : null,
+    plan: isLoggedIn ? state.authPlan : 'free',
+    token: isLoggedIn ? state.authToken : null,
+  });
+}
+
+// Get Supabase config — stored by user in settings (or env)
+async function getSupabaseConfig(backendUrl) {
+  const stored = await chrome.storage.local.get(['supabaseUrl', 'supabaseAnonKey']);
+  return {
+    supabaseUrl: stored.supabaseUrl || 'https://your-project.supabase.co',
+    supabaseAnonKey: stored.supabaseAnonKey || '',
+  };
+}
+
+// ── Auth header helper ────────────────────────────────────────────────────────
+async function getAuthHeaders() {
+  const state = await chrome.storage.local.get(['authToken', 'apiKey']);
+  if (state.authToken) {
+    return { 'Authorization': `Bearer ${state.authToken}`, 'Content-Type': 'application/json' };
+  }
+  if (state.apiKey) {
+    return { 'X-API-Key': state.apiKey, 'Content-Type': 'application/json' };
+  }
+  return { 'Content-Type': 'application/json' };
+}
+
+// ── Memory Handlers ───────────────────────────────────────────────────────────
 
 async function handleMemoryCaptured(payload, sender, sendResponse) {
   try {
-    const result = await chrome.storage.local.get(['memories', 'memoryCount', 'backendUrl', 'apiKey']);
+    const result = await chrome.storage.local.get(['memories', 'memoryCount', 'backendUrl']);
     const memories = result.memories || [];
     const count = result.memoryCount || 0;
 
@@ -84,10 +231,10 @@ async function handleMemoryCaptured(payload, sender, sendResponse) {
     await chrome.storage.local.set({ memories, memoryCount: count + 1 });
     updateBadge(memories.length);
 
-    // Also send to backend API (non-blocking — don't fail if backend is down)
-    if (result.backendUrl && result.apiKey) {
-      saveToBackend(newMemory, result.backendUrl, result.apiKey).catch(e =>
-        console.warn('[Mnemox SW] Backend save failed (offline?):', e.message)
+    if (result.backendUrl) {
+      const headers = await getAuthHeaders();
+      saveToBackend(newMemory, result.backendUrl, headers).catch(e =>
+        console.warn('[Mnemox SW] Backend save failed:', e.message)
       );
     }
 
@@ -100,22 +247,19 @@ async function handleMemoryCaptured(payload, sender, sendResponse) {
 
 async function handleSearchMemories(payload, sendResponse) {
   try {
-    const { backendUrl, apiKey } = await chrome.storage.local.get(['backendUrl', 'apiKey']);
+    const { backendUrl } = await chrome.storage.local.get('backendUrl');
+    const headers = await getAuthHeaders();
 
-    if (!backendUrl || !apiKey) {
-      // Backend not configured — fall back to local keyword search
+    // Need at least auth headers to call backend
+    if (!backendUrl || (!headers['Authorization'] && !headers['X-API-Key'])) {
       const { memories = [] } = await chrome.storage.local.get('memories');
       const results = localKeywordSearch(memories, payload.query, payload.limit || 5);
       return sendResponse({ success: true, results, source: 'local' });
     }
 
-    // Call backend semantic search
     const response = await fetch(`${backendUrl}/memories/search`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': apiKey,
-      },
+      headers,
       body: JSON.stringify({
         query: payload.query,
         limit: payload.limit || 5,
@@ -129,7 +273,6 @@ async function handleSearchMemories(payload, sendResponse) {
 
   } catch (err) {
     console.warn('[Mnemox SW] Search error:', err.message);
-    // Graceful fallback to local search
     try {
       const { memories = [] } = await chrome.storage.local.get('memories');
       const results = localKeywordSearch(memories, payload.query, payload.limit || 5);
@@ -148,7 +291,8 @@ async function handleGetMemories(payload, sendResponse) {
 
 async function handleGetSettings(sendResponse) {
   const settings = await chrome.storage.local.get([
-    'captureEnabled', 'injectEnabled', 'memoryCount', 'backendUrl', 'apiKey'
+    'captureEnabled', 'injectEnabled', 'memoryCount',
+    'backendUrl', 'apiKey', 'authPlan', 'authUser',
   ]);
   sendResponse({ success: true, settings });
 }
@@ -158,40 +302,30 @@ async function handleUpdateSettings(patch, sendResponse) {
   sendResponse({ success: true });
 }
 
-// ── Backend API call ─────────────────────────────────────────────────────────
-async function saveToBackend(memory, backendUrl, apiKey) {
+// ── Backend API call ──────────────────────────────────────────────────────────
+async function saveToBackend(memory, backendUrl, headers) {
   const response = await fetch(`${backendUrl}/memories`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-API-Key': apiKey,
-    },
-    body: JSON.stringify({
-      content: memory.content,
-      source: memory.source,
-    }),
+    headers,
+    body: JSON.stringify({ content: memory.content, source: memory.source }),
   });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return response.json();
 }
 
-// ── Local keyword fallback search (when backend not configured) ──────────────
+// ── Local keyword fallback ────────────────────────────────────────────────────
 function localKeywordSearch(memories, query, limit) {
   if (!query || !memories.length) return [];
-
   const queryWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-
   return memories
-    .map(function(m) {
+    .map(m => {
       const text = m.content.toLowerCase();
-      const score = queryWords.reduce(function(acc, word) {
-        return acc + (text.includes(word) ? 1 : 0);
-      }, 0) / queryWords.length;
-      return { memory_id: m.id, score: score, source: m.source,
+      const score = queryWords.reduce((acc, word) => acc + (text.includes(word) ? 1 : 0), 0) / queryWords.length;
+      return { memory_id: m.id, score, source: m.source,
                content_preview: m.content.slice(0, 200), created_at: m.capturedAt };
     })
-    .filter(function(r) { return r.score > 0; })
-    .sort(function(a, b) { return b.score - a.score; })
+    .filter(r => r.score > 0)
+    .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 }
 

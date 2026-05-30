@@ -1,9 +1,7 @@
 @echo off
 :: ============================================================
-:: MNEMOX — Git Setup + Checkpoint Script
-:: Run from inside the mnemox folder (right-click > Open in Terminal, then: git_setup.bat)
-:: After Step 1: run once to init repo
-:: After each step: run to commit + tag the new checkpoint
+:: MNEMOX — Git Checkpoint Manager
+:: Run after each step to commit + tag the stable state
 :: ============================================================
 
 echo.
@@ -11,11 +9,9 @@ echo  MNEMOX — Git Checkpoint Manager
 echo  ==================================
 echo.
 
-:: Set identity
 git config --global user.name "Ajay"
 git config --global user.email "ajjukak123@gmail.com"
 
-:: Init repo if not already done
 if not exist ".git" (
     git init
     git branch -M main
@@ -24,41 +20,78 @@ if not exist ".git" (
     echo  [OK] Git repo already exists
 )
 
-:: Detect which step to commit based on existing tags
+:: ── Check from highest step downward ──────────────────────────────────────
+
+git rev-parse v0.7 >nul 2>&1
+if %errorlevel% == 0 goto already_done
+
+git rev-parse v0.6 >nul 2>&1
+if %errorlevel% == 0 goto commit_v7
+
+git rev-parse v0.5 >nul 2>&1
+if %errorlevel% == 0 goto commit_v6_v7
+
+git rev-parse v0.4 >nul 2>&1
+if %errorlevel% == 0 goto commit_v5_v6_v7
+
 git rev-parse v0.3 >nul 2>&1
-if %errorlevel% == 0 goto already_v3
+if %errorlevel% == 0 goto commit_v4_v5_v6_v7
 
-git rev-parse v0.2 >nul 2>&1
-if %errorlevel% == 0 goto commit_v3
-
-git rev-parse v0.1 >nul 2>&1
-if %errorlevel% == 0 goto commit_v2
-
-:: No tags yet — commit Steps 1+2+3 together
+:: No tags at all — commit everything from scratch
 git add .
-git commit -m "feat: Step 1+2+3 — extension, prompt capture, FastAPI backend, Supabase storage"
+git commit -m "feat: Steps 1-7 — extension, capture, backend, vectors, injection, dashboard, auth+billing"
 git tag v0.1
 git tag v0.2
 git tag v0.3
+git tag v0.4
+git tag v0.5
+git tag v0.6
+git tag v0.7
 echo.
-echo  Checkpoints v0.1, v0.2 and v0.3 created!
+echo  All checkpoints v0.1 through v0.7 created!
 goto done
 
-:commit_v2
+:commit_v4_v5_v6_v7
 git add .
-git commit -m "feat: Step 2 — prompt capture all 4 AI tools, toast, MutationObserver"
-git tag v0.2
-
-:commit_v3
-git add .
-git commit -m "feat: Step 3 — FastAPI backend, Supabase schema, models, config, health endpoint"
-git tag v0.3
+git commit -m "feat: Steps 4-7 — vectors, injection, dashboard, auth+billing"
+git tag v0.4
+git tag v0.5
+git tag v0.6
+git tag v0.7
 echo.
-echo  Checkpoint v0.3 created!
+echo  Checkpoints v0.4, v0.5, v0.6, v0.7 created!
 goto done
 
-:already_v3
-echo  v0.3 already tagged. Nothing to do.
+:commit_v5_v6_v7
+git add .
+git commit -m "feat: Steps 5-7 — injection, dashboard, auth+billing"
+git tag v0.5
+git tag v0.6
+git tag v0.7
+echo.
+echo  Checkpoints v0.5, v0.6, v0.7 created!
+goto done
+
+:commit_v6_v7
+git add .
+git commit -m "feat: Steps 6-7 — dashboard UI + Supabase auth, Stripe billing, team sharing"
+git tag v0.6
+git tag v0.7
+echo.
+echo  Checkpoints v0.6 and v0.7 created!
+goto done
+
+:commit_v7
+git add .
+git commit -m "feat: Step 7 — Supabase JWT auth, Stripe billing (Free/Pro/Team), team memory vault"
+git tag v0.7
+echo.
+echo  Checkpoint v0.7 created!
+goto done
+
+:already_done
+echo  v0.7 already tagged. Running git status...
+git status --short
 
 :done
 echo.
@@ -67,6 +100,8 @@ git log --oneline
 echo.
 git tag
 echo.
-echo  To revert to any checkpoint:  git checkout v0.X
+echo  How to revert to any checkpoint:
+echo    git checkout v0.X           (view that state)
+echo    git checkout main           (back to latest)
 echo.
 pause
