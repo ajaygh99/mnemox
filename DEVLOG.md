@@ -91,3 +91,26 @@
 
 ### Tests: 84 passed ✅
 ### Git tag: v0.7
+
+## Step 8 — End-to-End Testing + ProductHunt Launch (v0.8)
+
+### What was built
+- **tests/step8/test_e2e_api.py**: 48 real integration tests using FastAPI TestClient with mocked Supabase/Qdrant/OpenAI. Tests cover: health endpoint, all memory CRUD, search, billing plans, checkout, team plan gating, JWT auth edge cases (expired, wrong secret, no header), free plan 402 enforcement, team memory namespace sharing
+- **landing/index.html**: Full Mnemox landing page — hero, how-it-works steps, feature grid, testimonials, pricing table (Free/Pro/Team), CTA band, footer. No build step, pure HTML/CSS
+- **LAUNCH.md**: Complete launch playbook — ProductHunt tagline + description + maker comment, Chrome Web Store listing copy, Twitter thread, LinkedIn post, full pre-launch checklist, backend deployment guide, Stripe setup, target metrics table
+
+### Tests: 48 new E2E integration tests (303 total) ✅
+### Git tag: v0.8
+
+### Total test count by step
+| Step | Tests | What |
+|------|-------|------|
+| 1 | 16 | Extension structure, manifest |
+| 2 | 22 | Content script, popup |
+| 3 | 35 | FastAPI backend, Supabase |
+| 4 | 39 | Vector embeddings, Qdrant |
+| 5 | 30 | Memory injection, content script |
+| 6 | 29 | Dashboard, settings |
+| 7 | 84 | Auth, billing, team |
+| 8 | 48 | E2E integration (real HTTP) |
+| **Total** | **303** | **All passing ✅** |
