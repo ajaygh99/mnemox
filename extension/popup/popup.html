@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mnemox</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+    body {
+      width: 320px;
+      min-height: 420px;
+      background: #0f0f1a;
+      color: #f0f0f0;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1a1a3e, #2d1b69);
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid #2a2a4a;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon { font-size: 24px; }
+    .logo-text { font-size: 20px; font-weight: 800; letter-spacing: 1px; color: #a78bfa; }
+    .logo-tag { font-size: 10px; color: #6b7280; margin-top: 1px; letter-spacing: 1px; }
+
+    /* Status badge */
+    .status-bar {
+      display: flex; align-items: center; gap: 6px;
+      margin-top: 10px; padding: 5px 10px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 20px; width: fit-content;
+    }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .status-text { font-size: 10px; color: #9ca3af; }
+
+    /* Body */
+    .body { padding: 16px; }
+
+    /* Memory count card */
+    .memory-card {
+      background: #1a1a2e;
+      border: 1px solid #2a2a4a;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .memory-count { font-size: 32px; font-weight: 800; color: #a78bfa; }
+    .memory-label { font-size: 11px; color: #6b7280; margin-top: 2px; }
+    .memory-icon { font-size: 28px; }
+
+    /* Current site indicator */
+    .site-badge {
+      background: #1a1a2e;
+      border: 1px solid #2a2a4a;
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .site-icon { font-size: 18px; }
+    .site-info .site-name { font-size: 12px; font-weight: 600; color: #e5e7eb; }
+    .site-info .site-status { font-size: 10px; color: #6b7280; }
+
+    /* Toggle */
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px;
+      background: #1a1a2e;
+      border: 1px solid #2a2a4a;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+    .toggle-label { font-size: 12px; color: #d1d5db; }
+    .toggle {
+      position: relative; width: 38px; height: 20px;
+      background: #374151; border-radius: 10px; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle.on { background: #7c3aed; }
+    .toggle::after {
+      content: ''; position: absolute;
+      top: 3px; left: 3px;
+      width: 14px; height: 14px;
+      background: white; border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle.on::after { transform: translateX(18px); }
+
+    /* Action buttons */
+    .btn {
+      width: 100%; padding: 10px;
+      border: none; border-radius: 10px;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer; margin-bottom: 8px;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: #7c3aed; color: white; }
+    .btn-secondary { background: #1a1a2e; color: #a78bfa; border: 1px solid #2a2a4a; }
+
+    /* Footer */
+    .footer {
+      padding: 10px 16px;
+      border-top: 1px solid #1a1a2e;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .version { font-size: 10px; color: #374151; }
+    .footer-link { font-size: 10px; color: #6b7280; text-decoration: none; cursor: pointer; }
+    .footer-link:hover { color: #a78bfa; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <div class="logo-text">MNEMOX</div>
+      <div class="logo-tag">ONE MEMORY · EVERY AI</div>
+    </div>
+  </div>
+  <div class="status-bar">
+    <div class="status-dot" id="statusDot"></div>
+    <div class="status-text" id="statusText">Connected · Watching for prompts</div>
+  </div>
+</div>
+
+<div class="body">
+
+  <!-- Memory Count -->
+  <div class="memory-card">
+    <div>
+      <div class="memory-count" id="memoryCount">0</div>
+      <div class="memory-label">Memories stored</div>
+    </div>
+    <div class="memory-icon">🧠</div>
+  </div>
+
+  <!-- Current Site -->
+  <div class="site-badge" id="siteBadge">
+    <div class="site-icon" id="siteIcon">🌐</div>
+    <div class="site-info">
+      <div class="site-name" id="siteName">Detecting AI tool...</div>
+      <div class="site-status" id="siteStatus">Memory injection ready</div>
+    </div>
+  </div>
+
+  <!-- Toggles -->
+  <div class="toggle-row">
+    <span class="toggle-label">🔄 Auto-capture memories</span>
+    <div class="toggle on" id="captureToggle" onclick="toggleCapture()"></div>
+  </div>
+  <div class="toggle-row">
+    <span class="toggle-label">💉 Auto-inject on prompts</span>
+    <div class="toggle on" id="injectToggle" onclick="toggleInject()"></div>
+  </div>
+
+  <!-- Buttons -->
+  <button class="btn btn-primary" id="viewMemoriesBtn">📚 View My Memories</button>
+  <button class="btn btn-secondary" id="saveNowBtn">💾 Save Current Context</button>
+
+</div>
+
+<div class="footer">
+  <span class="version">v0.1.0 · Step 1 Checkpoint</span>
+  <span class="footer-link" id="settingsLink">Settings</span>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

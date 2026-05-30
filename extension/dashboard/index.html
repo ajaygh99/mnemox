@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mnemox — Memory Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+           background: #0f0f1a; color: #e5e7eb; min-height: 100vh; }
+
+    /* ── Layout ── */
+    .app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar { background: #13132a; border-right: 1px solid #1e1e3a; padding: 24px 16px; display: flex; flex-direction: column; gap: 6px; }
+    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+    .brand-icon { font-size: 22px; }
+    .brand-name { font-size: 18px; font-weight: 800; color: #a78bfa; letter-spacing: 1px; }
+    .brand-tag { font-size: 9px; color: #4b5563; letter-spacing: 1.5px; }
+    .nav-btn { display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+               border-radius: 8px; border: none; background: none; color: #9ca3af;
+               font-size: 13px; cursor: pointer; width: 100%; text-align: left; transition: all 0.15s; }
+    .nav-btn:hover { background: #1e1e3a; color: #e5e7eb; }
+    .nav-btn.active { background: #2d1b69; color: #a78bfa; font-weight: 600; }
+    .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+    .sidebar-footer { margin-top: auto; font-size: 10px; color: #374151; text-align: center; padding-top: 16px; border-top: 1px solid #1e1e3a; }
+
+    /* ── Main ── */
+    .main { padding: 32px; overflow-y: auto; }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ── Header ── */
+    .page-header { margin-bottom: 24px; }
+    .page-title { font-size: 22px; font-weight: 700; color: #f3f4f6; }
+    .page-sub { font-size: 13px; color: #6b7280; margin-top: 4px; }
+
+    /* ── Stats row ── */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: #13132a; border: 1px solid #1e1e3a; border-radius: 10px; padding: 14px 16px; }
+    .stat-num { font-size: 28px; font-weight: 800; color: #a78bfa; }
+    .stat-label { font-size: 11px; color: #6b7280; margin-top: 2px; }
+    .stat-icon { font-size: 20px; float: right; margin-top: -2px; }
+
+    /* ── Search bar ── */
+    .search-row { display: flex; gap: 10px; margin-bottom: 18px; align-items: center; }
+    .search-input { flex: 1; background: #13132a; border: 1px solid #1e1e3a;
+                    color: #e5e7eb; padding: 9px 14px; border-radius: 8px; font-size: 13px; outline: none; }
+    .search-input:focus { border-color: #7c3aed; }
+    .filter-select { background: #13132a; border: 1px solid #1e1e3a; color: #9ca3af;
+                     padding: 9px 12px; border-radius: 8px; font-size: 12px; outline: none; cursor: pointer; }
+
+    /* ── Memory list ── */
+    .memory-list { display: flex; flex-direction: column; gap: 8px; }
+    .memory-card { background: #13132a; border: 1px solid #1e1e3a; border-radius: 10px;
+                   padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start;
+                   transition: border-color 0.15s; }
+    .memory-card:hover { border-color: #2d1b69; }
+    .memory-source { flex-shrink: 0; }
+    .source-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+    .source-chatgpt  { background: #064e3b; color: #6ee7b7; }
+    .source-claude   { background: #1e1b4b; color: #a5b4fc; }
+    .source-gemini   { background: #1e3a5f; color: #93c5fd; }
+    .source-copilot  { background: #1f2937; color: #d1d5db; }
+    .memory-body { flex: 1; min-width: 0; }
+    .memory-text { font-size: 13px; color: #d1d5db; line-height: 1.5;
+                   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .memory-text.expanded { white-space: normal; }
+    .memory-meta { font-size: 11px; color: #4b5563; margin-top: 5px; }
+    .memory-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .btn-icon { background: none; border: none; cursor: pointer; padding: 4px 6px;
+                border-radius: 6px; font-size: 14px; opacity: 0.5; transition: all 0.15s; }
+    .btn-icon:hover { opacity: 1; background: #1e1e3a; }
+    .btn-delete:hover { background: #450a0a; color: #f87171; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: #4b5563; }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-text { font-size: 14px; }
+
+    /* ── Settings page ── */
+    .settings-section { background: #13132a; border: 1px solid #1e1e3a; border-radius: 10px;
+                        padding: 20px; margin-bottom: 16px; }
+    .settings-title { font-size: 14px; font-weight: 600; color: #d1d5db; margin-bottom: 14px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 12px; color: #9ca3af; margin-bottom: 5px; }
+    .field input { width: 100%; background: #0f0f1a; border: 1px solid #1e1e3a;
+                   color: #e5e7eb; padding: 9px 12px; border-radius: 8px; font-size: 13px; outline: none; }
+    .field input:focus { border-color: #7c3aed; }
+    .field-hint { font-size: 11px; color: #4b5563; margin-top: 4px; }
+    .toggle-row { display: flex; justify-content: space-between; align-items: center;
+                  padding: 10px 0; border-bottom: 1px solid #1a1a2e; }
+    .toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .toggle-label { font-size: 13px; color: #d1d5db; }
+    .toggle-desc { font-size: 11px; color: #4b5563; margin-top: 2px; }
+    .toggle { width: 36px; height: 20px; background: #374151; border-radius: 10px;
+              cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0; }
+    .toggle.on { background: #7c3aed; }
+    .toggle::after { content: ''; position: absolute; top: 3px; left: 3px;
+                     width: 14px; height: 14px; background: white; border-radius: 50%;
+                     transition: transform 0.2s; }
+    .toggle.on::after { transform: translateX(16px); }
+    .btn-save { background: #7c3aed; color: white; border: none; padding: 10px 20px;
+                border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+                transition: opacity 0.2s; }
+    .btn-save:hover { opacity: 0.85; }
+    .btn-danger { background: #450a0a; color: #f87171; border: 1px solid #7f1d1d;
+                  padding: 10px 20px; border-radius: 8px; font-size: 13px;
+                  font-weight: 600; cursor: pointer; }
+    .status-msg { font-size: 12px; color: #22c55e; margin-top: 8px; display: none; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <div class="brand-name">MNEMOX</div>
+        <div class="brand-tag">ONE MEMORY · EVERY AI</div>
+      </div>
+    </div>
+
+    <button class="nav-btn active" onclick="showPage('memories')">
+      <span class="nav-icon">🧠</span> Memories
+    </button>
+    <button class="nav-btn" onclick="showPage('search')">
+      <span class="nav-icon">🔍</span> Search
+    </button>
+    <button class="nav-btn" onclick="showPage('settings')">
+      <span class="nav-icon">⚙️</span> Settings
+    </button>
+
+    <div class="sidebar-footer">v0.6.0 · Mnemox</div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+
+    <!-- ── Memories Page ── -->
+    <div id="page-memories" class="page active">
+      <div class="page-header">
+        <div class="page-title">Your Memories</div>
+        <div class="page-sub">Every prompt you've sent, across all AI tools</div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon">🧠</div>
+          <div class="stat-num" id="stat-total">0</div>
+          <div class="stat-label">Total memories</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🤖</div>
+          <div class="stat-num" id="stat-chatgpt">0</div>
+          <div class="stat-label">ChatGPT</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🧬</div>
+          <div class="stat-num" id="stat-claude">0</div>
+          <div class="stat-label">Claude</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✨</div>
+          <div class="stat-num" id="stat-other">0</div>
+          <div class="stat-label">Gemini + Copilot</div>
+        </div>
+      </div>
+
+      <div class="search-row">
+        <input class="search-input" id="mem-search" placeholder="Filter memories..." oninput="filterMemories()" />
+        <select class="filter-select" id="mem-filter" onchange="filterMemories()">
+          <option value="">All sources</option>
+          <option value="chatgpt">ChatGPT</option>
+          <option value="claude">Claude</option>
+          <option value="gemini">Gemini</option>
+          <option value="copilot">Copilot</option>
+        </select>
+      </div>
+
+      <div class="memory-list" id="memory-list">
+        <div class="empty-state">
+          <div class="empty-icon">🧠</div>
+          <div class="empty-text">No memories yet — start chatting on any AI tool!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Search Page ── -->
+    <div id="page-search" class="page">
+      <div class="page-header">
+        <div class="page-title">Semantic Search</div>
+        <div class="page-sub">Find memories by meaning, not just keywords</div>
+      </div>
+      <div class="search-row">
+        <input class="search-input" id="sem-query" placeholder="e.g. machine learning project, budget discussions..." />
+        <button class="btn-save" onclick="semanticSearch()">Search</button>
+      </div>
+      <div class="memory-list" id="search-results">
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-text">Enter a query to search your memory vault</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Settings Page ── -->
+    <div id="page-settings" class="page">
+      <div class="page-header">
+        <div class="page-title">Settings</div>
+        <div class="page-sub">Configure your Mnemox backend and preferences</div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-title">🔗 Backend Connection</div>
+        <div class="field">
+          <label>Backend URL</label>
+          <input id="s-backend-url" placeholder="http://localhost:8000" />
+          <div class="field-hint">Your FastAPI server. Use Railway/Render URL in production.</div>
+        </div>
+        <div class="field">
+          <label>API Secret Key</label>
+          <input id="s-api-key" type="password" placeholder="Your API_SECRET_KEY from .env" />
+          <div class="field-hint">Must match API_SECRET_KEY in your backend .env file.</div>
+        </div>
+        <button class="btn-save" onclick="saveBackendSettings()">Save & Test Connection</button>
+        <div class="status-msg" id="conn-status"></div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-title">⚡ Memory Behaviour</div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Auto-capture prompts</div>
+            <div class="toggle-desc">Save every prompt you send as a memory</div>
+          </div>
+          <div class="toggle on" id="t-capture" onclick="toggleSetting('captureEnabled', 't-capture')"></div>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Auto-inject memories</div>
+            <div class="toggle-desc">Prepend relevant context before sending prompts</div>
+          </div>
+          <div class="toggle on" id="t-inject" onclick="toggleSetting('injectEnabled', 't-inject')"></div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-title">🗑️ Danger Zone</div>
+        <p style="font-size:13px;color:#6b7280;margin-bottom:14px;">
+          Permanently delete all locally stored memories. This cannot be undone.
+        </p>
+        <button class="btn-danger" onclick="clearAllMemories()">Clear All Memories</button>
+        <div class="status-msg" id="clear-status"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+var allMemories = [];
+var settings = { captureEnabled: true, injectEnabled: true, backendUrl: '', apiKey: '' };
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('page-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ── Load data from chrome.storage.local ───────────────────────────────────────
+function loadData() {
+  if (typeof chrome === 'undefined' || !chrome.storage) {
+    // Dev mode outside extension — use mock data
+    allMemories = [
+      { id: '1', content: 'Explain vector databases in simple terms', source: 'chatgpt', capturedAt: Date.now() - 86400000 },
+      { id: '2', content: 'Write a Python FastAPI endpoint for user auth', source: 'claude', capturedAt: Date.now() - 3600000 },
+      { id: '3', content: 'How do I reduce AI API costs for my startup', source: 'gemini', capturedAt: Date.now() - 1800000 },
+    ];
+    settings = { captureEnabled: true, injectEnabled: true, backendUrl: 'http://localhost:8000', apiKey: '' };
+    renderAll();
+    return;
+  }
+
+  chrome.storage.local.get(
+    ['memories', 'captureEnabled', 'injectEnabled', 'backendUrl', 'apiKey'],
+    function(data) {
+      allMemories = (data.memories || []).slice().reverse(); // newest first
+      settings.captureEnabled = data.captureEnabled !== false;
+      settings.injectEnabled  = data.injectEnabled  !== false;
+      settings.backendUrl = data.backendUrl || '';
+      settings.apiKey     = data.apiKey     || '';
+      renderAll();
+    }
+  );
+}
+
+function renderAll() {
+  renderStats();
+  renderMemories(allMemories);
+  renderSettings();
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function renderStats() {
+  var counts = { chatgpt: 0, claude: 0, gemini: 0, copilot: 0 };
+  allMemories.forEach(function(m) { if (counts[m.source] !== undefined) counts[m.source]++; });
+  document.getElementById('stat-total').textContent   = allMemories.length;
+  document.getElementById('stat-chatgpt').textContent = counts.chatgpt;
+  document.getElementById('stat-claude').textContent  = counts.claude;
+  document.getElementById('stat-other').textContent   = counts.gemini + counts.copilot;
+}
+
+// ── Memory list ───────────────────────────────────────────────────────────────
+function filterMemories() {
+  var query  = document.getElementById('mem-search').value.toLowerCase();
+  var source = document.getElementById('mem-filter').value;
+  var filtered = allMemories.filter(function(m) {
+    var matchSource = !source || m.source === source;
+    var matchText   = !query  || m.content.toLowerCase().includes(query);
+    return matchSource && matchText;
+  });
+  renderMemories(filtered);
+}
+
+function renderMemories(list) {
+  var el = document.getElementById('memory-list');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">🧠</div><div class="empty-text">No memories match your filter</div></div>';
+    return;
+  }
+  el.innerHTML = list.map(function(m) { return memoryCard(m); }).join('');
+}
+
+function memoryCard(m) {
+  var date = new Date(m.capturedAt || m.created_at).toLocaleString();
+  return '<div class="memory-card" id="card-' + m.id + '">' +
+    '<div class="memory-source"><span class="source-badge source-' + m.source + '">' + m.source + '</span></div>' +
+    '<div class="memory-body">' +
+      '<div class="memory-text" id="text-' + m.id + '">' + escHtml(m.content) + '</div>' +
+      '<div class="memory-meta">' + date + '</div>' +
+    '</div>' +
+    '<div class="memory-actions">' +
+      '<button class="btn-icon" onclick="expandMemory(\'' + m.id + '\')" title="Expand">⤢</button>' +
+      '<button class="btn-icon btn-delete" onclick="deleteMemory(\'' + m.id + '\')" title="Delete">🗑</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function expandMemory(id) {
+  var el = document.getElementById('text-' + id);
+  if (el) el.classList.toggle('expanded');
+}
+
+function deleteMemory(id) {
+  allMemories = allMemories.filter(function(m) { return m.id !== id; });
+  if (typeof chrome !== 'undefined' && chrome.storage) {
+    chrome.storage.local.set({ memories: allMemories.slice().reverse(), memoryCount: allMemories.length });
+  }
+  var card = document.getElementById('card-' + id);
+  if (card) { card.style.opacity = '0'; card.style.transition = 'opacity 0.2s'; setTimeout(function() { filterMemories(); renderStats(); }, 200); }
+}
+
+// ── Semantic Search ───────────────────────────────────────────────────────────
+function semanticSearch() {
+  var query = document.getElementById('sem-query').value.trim();
+  var el = document.getElementById('search-results');
+  if (!query) return;
+
+  el.innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-text">Searching...</div></div>';
+
+  if (typeof chrome !== 'undefined' && chrome.runtime) {
+    chrome.runtime.sendMessage({
+      type: 'MNEMOX_SEARCH_MEMORIES',
+      payload: { query: query, limit: 10, score_threshold: 0.5 },
+    }, function(response) {
+      if (response && response.success && response.results.length) {
+        var matched = response.results.map(function(r) {
+          return allMemories.find(function(m) { return m.id === r.memory_id; }) ||
+            { id: r.memory_id, content: r.content_preview, source: r.source, capturedAt: r.created_at };
+        });
+        el.innerHTML = matched.map(function(m) { return memoryCard(m); }).join('');
+      } else {
+        el.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">No similar memories found</div></div>';
+      }
+    });
+  } else {
+    // Dev fallback: keyword search
+    var results = allMemories.filter(function(m) { return m.content.toLowerCase().includes(query.toLowerCase()); });
+    el.innerHTML = results.length ? results.map(memoryCard).join('') :
+      '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">No results</div></div>';
+  }
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+function renderSettings() {
+  document.getElementById('s-backend-url').value = settings.backendUrl || '';
+  document.getElementById('s-api-key').value     = settings.apiKey     || '';
+  document.getElementById('t-capture').className = 'toggle' + (settings.captureEnabled ? ' on' : '');
+  document.getElementById('t-inject').className  = 'toggle' + (settings.injectEnabled  ? ' on' : '');
+}
+
+function toggleSetting(key, toggleId) {
+  settings[key] = !settings[key];
+  document.getElementById(toggleId).classList.toggle('on', settings[key]);
+  if (typeof chrome !== 'undefined' && chrome.storage) {
+    var patch = {}; patch[key] = settings[key];
+    chrome.storage.local.set(patch);
+  }
+}
+
+function saveBackendSettings() {
+  var url = document.getElementById('s-backend-url').value.trim();
+  var key = document.getElementById('s-api-key').value.trim();
+  var statusEl = document.getElementById('conn-status');
+
+  if (typeof chrome !== 'undefined' && chrome.storage) {
+    chrome.storage.local.set({ backendUrl: url, apiKey: key });
+  }
+
+  statusEl.style.display = 'block';
+  statusEl.textContent = 'Saving...';
+
+  // Test connection
+  if (url && key) {
+    fetch(url + '/health', { headers: { 'X-API-Key': key } })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        statusEl.textContent = data.status === 'ok'
+          ? 'Connected! Supabase: ' + (data.supabase_connected ? 'OK' : 'Error') + ' | Qdrant: ' + (data.qdrant_connected ? 'OK' : 'Error')
+          : 'Backend reachable but degraded';
+        statusEl.style.color = data.status === 'ok' ? '#22c55e' : '#f59e0b';
+      })
+      .catch(function() {
+        statusEl.textContent = 'Saved locally (backend unreachable — is it running?)';
+        statusEl.style.color = '#f59e0b';
+      });
+  } else {
+    statusEl.textContent = 'Settings saved (no backend URL provided — using local mode)';
+    statusEl.style.color = '#9ca3af';
+  }
+}
+
+function clearAllMemories() {
+  if (!confirm('Delete ALL memories permanently? This cannot be undone.')) return;
+  allMemories = [];
+  if (typeof chrome !== 'undefined' && chrome.storage) {
+    chrome.storage.local.set({ memories: [], memoryCount: 0 });
+  }
+  renderAll();
+  var el = document.getElementById('clear-status');
+  el.style.display = 'block';
+  el.textContent = 'All memories cleared.';
+  el.style.color = '#f87171';
+}
+
+// ── Utility ───────────────────────────────────────────────────────────────────
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadData();
+// Allow Enter key to trigger semantic search
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && document.getElementById('sem-query') === document.activeElement) {
+    semanticSearch();
+  }
+});
+</script>
+</body>
+</html>
