@@ -129,6 +129,15 @@
     .faq-item.open .faq-arrow { transform: rotate(180deg); }
     .faq-arrow { transition: transform .2s; flex-shrink: 0; }
 
+    /* ── Privacy Promise ── */
+    #privacy-promise { background: var(--bg); }
+    .privacy-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-top: 3rem; }
+    .privacy-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; text-align: center; }
+    .privacy-card .icon { font-size: 2rem; margin-bottom: 1rem; }
+    .privacy-card h3 { font-size: 1rem; margin-bottom: .5rem; }
+    .privacy-card p { color: var(--muted); font-size: .88rem; }
+    .disclaimer { margin-top: 3rem; padding: 1.25rem 1.75rem; background: rgba(124,58,237,.08); border: 1px solid var(--border); border-radius: 12px; color: var(--muted); font-size: .88rem; line-height: 1.7; }
+
     /* ── CTA ── */
     .cta-section { text-align: center; background: linear-gradient(135deg, var(--purple-dark) 0%, var(--bg) 100%); }
     .cta-section h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; margin-bottom: 1rem; }
@@ -355,6 +364,50 @@
         </button>
         <div class="faq-a">Yes. The Team plan gives your whole team a shared memory namespace so every team member's AI has the same context about your company and projects.</div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Privacy Promise ── -->
+<section id="privacy-promise">
+  <div class="container">
+    <div class="section-tag">Privacy & Security</div>
+    <h2 class="section-title">Your data is yours. Always.</h2>
+    <p class="section-sub">We built Mnemox with privacy as the foundation, not an afterthought.</p>
+    <div class="privacy-cards">
+      <div class="privacy-card">
+        <div class="icon">🚫</div>
+        <h3>We never sell your data</h3>
+        <p>Your memories and prompts are never sold, rented, or shared with advertisers or third parties.</p>
+      </div>
+      <div class="privacy-card">
+        <div class="icon">🤖</div>
+        <h3>We never train on your data</h3>
+        <p>Your conversations are not used to train any AI model — ours or anyone else's.</p>
+      </div>
+      <div class="privacy-card">
+        <div class="icon">🔐</div>
+        <h3>Encrypted & isolated</h3>
+        <p>Your memories are stored under your account only, secured with JWT authentication and row-level security.</p>
+      </div>
+      <div class="privacy-card">
+        <div class="icon">🗑️</div>
+        <h3>Delete anytime</h3>
+        <p>Delete individual memories or your entire account at any time from the dashboard. No questions asked.</p>
+      </div>
+      <div class="privacy-card">
+        <div class="icon">👁️</div>
+        <h3>You control injection</h3>
+        <p>Auto-injection can be toggled off anytime from the popup. You decide what gets shared with AI tools.</p>
+      </div>
+      <div class="privacy-card">
+        <div class="icon">📋</div>
+        <h3>Full transparency</h3>
+        <p>Our <a href="#" onclick="showPrivacy(); return false;" style="color:var(--purple-light)">Privacy Policy</a> clearly explains every piece of data we collect and why.</p>
+      </div>
+    </div>
+    <div class="disclaimer">
+      <strong>Independent tool notice:</strong> Mnemox is an independent product and is not affiliated with, endorsed by, or partnered with OpenAI, Anthropic, Google, or Microsoft. ChatGPT, Claude, Gemini, and Copilot are trademarks of their respective owners. Mnemox operates as a user-assistive browser extension that helps users manage their own content across these platforms.
     </div>
   </div>
 </section>
