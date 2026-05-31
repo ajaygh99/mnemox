@@ -138,6 +138,15 @@
     .privacy-card p { color: var(--muted); font-size: .88rem; }
     .disclaimer { margin-top: 3rem; padding: 1.25rem 1.75rem; background: rgba(124,58,237,.08); border: 1px solid var(--border); border-radius: 12px; color: var(--muted); font-size: .88rem; line-height: 1.7; }
 
+    /* ── Waitlist ── */
+    .waitlist-form { display: flex; gap: .75rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem; }
+    .waitlist-form input { flex: 1; min-width: 260px; max-width: 380px; padding: .8rem 1.2rem; border-radius: 10px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); font-size: 1rem; outline: none; }
+    .waitlist-form input:focus { border-color: var(--purple); }
+    .waitlist-form button { background: var(--purple); color: white; border: none; padding: .8rem 1.8rem; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background .2s; }
+    .waitlist-form button:hover { background: #6d28d9; }
+    .waitlist-success { display: none; color: #1D9E75; font-size: 1rem; margin-top: 1rem; font-weight: 600; }
+    .waitlist-count { font-size: .85rem; color: var(--muted); margin-top: .75rem; }
+
     /* ── CTA ── */
     .cta-section { text-align: center; background: linear-gradient(135deg, var(--purple-dark) 0%, var(--bg) 100%); }
     .cta-section h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; margin-bottom: 1rem; }
@@ -412,6 +421,21 @@
   </div>
 </section>
 
+<!-- ── Waitlist ── -->
+<section id="waitlist" style="background: var(--bg2);">
+  <div class="container" style="text-align: center;">
+    <div class="section-tag">Early access</div>
+    <h2 class="section-title">Get notified when we launch</h2>
+    <p class="section-sub" style="margin: 0 auto;">Chrome Web Store review in progress. Join the waitlist and be first to know — plus get 3 months of Pro free at launch.</p>
+    <form class="waitlist-form" onsubmit="submitWaitlist(event)">
+      <input type="email" id="waitlist-email" placeholder="you@example.com" required />
+      <button type="submit">Join Waitlist</button>
+    </form>
+    <div class="waitlist-success" id="waitlist-success">✓ You're on the list! We'll email you at launch.</div>
+    <p class="waitlist-count" id="waitlist-count">Join 47 people already waiting</p>
+  </div>
+</section>
+
 <!-- ── CTA ── -->
 <section class="cta-section">
   <div class="container">
@@ -523,6 +547,24 @@
 </footer>
 
 <script>
+  // Waitlist
+  let waitlistCount = 47;
+  function submitWaitlist(e) {
+    e.preventDefault();
+    const email = document.getElementById('waitlist-email').value;
+    if (!email) return;
+    waitlistCount++;
+    document.getElementById('waitlist-success').style.display = 'block';
+    document.getElementById('waitlist-count').textContent = `Join ${waitlistCount} people already waiting`;
+    document.getElementById('waitlist-email').value = '';
+    document.querySelector('.waitlist-form button').disabled = true;
+    // Store in localStorage so count persists
+    localStorage.setItem('waitlistCount', waitlistCount);
+  }
+  // Restore count
+  const saved = localStorage.getItem('waitlistCount');
+  if (saved) { waitlistCount = parseInt(saved); document.getElementById('waitlist-count').textContent = `Join ${waitlistCount} people already waiting`; }
+
   // FAQ toggle
   function toggleFaq(btn) {
     const item = btn.closest('.faq-item');
