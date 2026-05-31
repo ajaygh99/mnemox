@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mnemox – Your AI Memory, Everywhere</title>
+  <meta name="description" content="One memory layer across ChatGPT, Claude, Gemini and Copilot. Stop repeating yourself. Free forever." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%237c3aed'/><text y='.9em' font-size='70' x='15' fill='white' font-family='sans-serif' font-weight='bold'>M</text></svg>" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --purple: #7c3aed;
+      --purple-light: #a78bfa;
+      --purple-dark: #4c1d95;
+      --bg: #0a0814;
+      --bg2: #120e24;
+      --text: #f1f0f5;
+      --muted: #9d93b8;
+      --border: rgba(124,58,237,0.2);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2rem;
+      background: rgba(10,8,20,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { display: flex; align-items: center; gap: .6rem; font-weight: 700; font-size: 1.2rem; text-decoration: none; color: var(--text); }
+    .logo-circle { width: 32px; height: 32px; background: var(--purple); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1rem; color: white; }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: .95rem; transition: color .2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--purple); color: white; border: none; padding: .55rem 1.2rem; border-radius: 8px; font-size: .9rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: background .2s; }
+    .nav-cta:hover { background: #6d28d9; }
+
+    /* ── Hero ── */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center;
+      padding: 6rem 1.5rem 4rem;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 800px;
+      background: radial-gradient(ellipse, rgba(124,58,237,.25) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: .4rem;
+      background: rgba(124,58,237,.15); border: 1px solid var(--border);
+      border-radius: 999px; padding: .3rem .9rem; font-size: .8rem;
+      color: var(--purple-light); margin-bottom: 1.5rem;
+    }
+    .hero h1 { font-size: clamp(2.5rem, 6vw, 5rem); font-weight: 800; line-height: 1.1; margin-bottom: 1rem; }
+    .hero h1 span { color: var(--purple-light); }
+    .hero p { font-size: 1.2rem; color: var(--muted); max-width: 580px; margin: 0 auto 2.5rem; }
+    .hero-btns { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+    .btn-primary { background: var(--purple); color: white; padding: .8rem 2rem; border-radius: 10px; font-size: 1rem; font-weight: 600; text-decoration: none; transition: background .2s; }
+    .btn-primary:hover { background: #6d28d9; }
+    .btn-secondary { background: transparent; color: var(--text); padding: .8rem 2rem; border-radius: 10px; font-size: 1rem; font-weight: 600; text-decoration: none; border: 1px solid var(--border); transition: border-color .2s; }
+    .btn-secondary:hover { border-color: var(--purple-light); }
+    .ai-logos { display: flex; gap: 1.5rem; align-items: center; justify-content: center; margin-top: 3rem; flex-wrap: wrap; }
+    .ai-logo { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: .5rem 1.2rem; font-size: .85rem; color: var(--muted); }
+
+    /* ── Section base ── */
+    section { padding: 5rem 1.5rem; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .section-tag { font-size: .8rem; font-weight: 600; color: var(--purple-light); letter-spacing: .1em; text-transform: uppercase; margin-bottom: .75rem; }
+    .section-title { font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 800; margin-bottom: 1rem; }
+    .section-sub { font-size: 1.05rem; color: var(--muted); max-width: 560px; }
+
+    /* ── How it works ── */
+    #how { background: var(--bg2); }
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 2rem; margin-top: 3rem; }
+    .step { background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; }
+    .step-num { width: 40px; height: 40px; background: var(--purple); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1rem; margin-bottom: 1rem; }
+    .step h3 { font-size: 1.1rem; margin-bottom: .5rem; }
+    .step p { color: var(--muted); font-size: .95rem; }
+
+    /* ── Features ── */
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 3rem; }
+    .feature-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; transition: border-color .2s; }
+    .feature-card:hover { border-color: var(--purple); }
+    .feature-icon { font-size: 1.8rem; margin-bottom: 1rem; }
+    .feature-card h3 { font-size: 1.05rem; margin-bottom: .5rem; }
+    .feature-card p { color: var(--muted); font-size: .9rem; }
+
+    /* ── Pricing ── */
+    #pricing { background: var(--bg2); }
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 3rem; max-width: 900px; }
+    .plan { background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 2rem; position: relative; }
+    .plan.popular { border-color: var(--purple); }
+    .popular-badge { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: var(--purple); color: white; font-size: .75rem; font-weight: 700; padding: .3rem .9rem; border-radius: 999px; white-space: nowrap; }
+    .plan-name { font-size: .85rem; font-weight: 600; color: var(--purple-light); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .5rem; }
+    .plan-price { font-size: 2.8rem; font-weight: 800; margin-bottom: .25rem; }
+    .plan-price span { font-size: 1rem; font-weight: 400; color: var(--muted); }
+    .plan-desc { color: var(--muted); font-size: .9rem; margin-bottom: 1.5rem; }
+    .plan-features { list-style: none; margin-bottom: 2rem; }
+    .plan-features li { padding: .4rem 0; font-size: .92rem; color: var(--muted); display: flex; gap: .5rem; }
+    .plan-features li::before { content: '✓'; color: var(--purple-light); font-weight: 700; }
+    .plan-btn { display: block; text-align: center; padding: .75rem; border-radius: 10px; font-weight: 600; font-size: .95rem; text-decoration: none; transition: background .2s; }
+    .plan-btn-primary { background: var(--purple); color: white; }
+    .plan-btn-primary:hover { background: #6d28d9; }
+    .plan-btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .plan-btn-outline:hover { border-color: var(--purple); }
+
+    /* ── FAQ ── */
+    .faq-list { margin-top: 3rem; max-width: 720px; }
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-q { width: 100%; text-align: left; background: none; border: none; color: var(--text); font-size: 1rem; font-weight: 600; padding: 1.25rem 0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+    .faq-a { color: var(--muted); font-size: .95rem; padding-bottom: 1.25rem; display: none; }
+    .faq-item.open .faq-a { display: block; }
+    .faq-item.open .faq-arrow { transform: rotate(180deg); }
+    .faq-arrow { transition: transform .2s; flex-shrink: 0; }
+
+    /* ── CTA ── */
+    .cta-section { text-align: center; background: linear-gradient(135deg, var(--purple-dark) 0%, var(--bg) 100%); }
+    .cta-section h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; margin-bottom: 1rem; }
+    .cta-section p { color: var(--muted); font-size: 1.1rem; margin-bottom: 2rem; }
+
+    /* ── Footer ── */
+    footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 3rem 1.5rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 2rem; justify-content: space-between; align-items: flex-start; }
+    .footer-brand p { color: var(--muted); font-size: .9rem; margin-top: .5rem; max-width: 260px; }
+    .footer-links h4 { font-size: .85rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: .75rem; }
+    .footer-links ul { list-style: none; }
+    .footer-links li { margin-bottom: .4rem; }
+    .footer-links a { color: var(--muted); text-decoration: none; font-size: .9rem; transition: color .2s; }
+    .footer-links a:hover { color: var(--text); }
+    .footer-bottom { max-width: 1100px; margin: 2rem auto 0; padding-top: 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; font-size: .85rem; color: var(--muted); }
+
+    /* ── Privacy page ── */
+    #privacy-page { display: none; }
+    #privacy-page.active { display: block; }
+    #main-content.hidden { display: none; }
+    .privacy-content { max-width: 760px; margin: 0 auto; padding: 8rem 1.5rem 5rem; }
+    .privacy-content h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: .5rem; }
+    .privacy-content .updated { color: var(--muted); font-size: .9rem; margin-bottom: 2.5rem; }
+    .privacy-content h2 { font-size: 1.2rem; font-weight: 700; margin: 2rem 0 .75rem; }
+    .privacy-content p, .privacy-content li { color: var(--muted); font-size: .97rem; line-height: 1.8; }
+    .privacy-content ul { padding-left: 1.5rem; margin: .5rem 0; }
+    .privacy-content a { color: var(--purple-light); }
+
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .footer-inner { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav>
+  <a class="nav-logo" href="#" onclick="showMain()">
+    <div class="logo-circle">M</div>
+    Mnemox
+  </a>
+  <ul class="nav-links">
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#faq">FAQ</a></li>
+  </ul>
+  <a class="nav-cta" href="https://chromewebstore.google.com" target="_blank">Add to Chrome — Free</a>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════
+     MAIN CONTENT
+══════════════════════════════════════════════════════════ -->
+<div id="main-content">
+
+<!-- ── Hero ── -->
+<section class="hero">
+  <div class="badge">✦ Now in review on Chrome Web Store</div>
+  <h1>Your AI memory,<br/><span>everywhere.</span></h1>
+  <p>Stop repeating yourself. Mnemox gives ChatGPT, Claude, Gemini, and Copilot a shared memory of who you are and what you're building.</p>
+  <div class="hero-btns">
+    <a class="btn-primary" href="https://chromewebstore.google.com" target="_blank">Add to Chrome — Free</a>
+    <a class="btn-secondary" href="#how">See how it works</a>
+  </div>
+  <div class="ai-logos">
+    <div class="ai-logo">ChatGPT</div>
+    <div class="ai-logo">Claude</div>
+    <div class="ai-logo">Gemini</div>
+    <div class="ai-logo">Copilot</div>
+  </div>
+</section>
+
+<!-- ── How it works ── -->
+<section id="how">
+  <div class="container">
+    <div class="section-tag">How it works</div>
+    <h2 class="section-title">Works in 60 seconds</h2>
+    <p class="section-sub">No setup. No configuration. Just install and every AI gets smarter about you.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Install Mnemox</h3>
+        <p>Add the Chrome extension for free. No credit card required.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Chat normally</h3>
+        <p>Mnemox silently captures context as you use ChatGPT, Claude, Gemini, or Copilot.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>AI remembers you</h3>
+        <p>Next time you open any AI, Mnemox automatically injects your relevant memories.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Features ── -->
+<section id="features">
+  <div class="container">
+    <div class="section-tag">Features</div>
+    <h2 class="section-title">Everything you need</h2>
+    <p class="section-sub">Built for developers, founders, researchers, and anyone who uses AI daily.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🔁</div>
+        <h3>Cross-AI Memory</h3>
+        <p>One memory store shared across ChatGPT, Claude, Gemini, and Copilot. Switch tools without losing context.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <h3>Semantic Search</h3>
+        <p>Powered by vector embeddings. Mnemox finds the most relevant memories — not just keyword matches.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Auto-Injection</h3>
+        <p>Relevant context is injected into your AI prompt automatically. No copy-pasting needed.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Privacy First</h3>
+        <p>Your memories are stored under your account only. We never train on your data.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👥</div>
+        <h3>Team Memory</h3>
+        <p>Share a memory namespace with your team so everyone's AI has the same context. Pro feature.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Memory Dashboard</h3>
+        <p>View, search, and delete your memories anytime from the extension dashboard.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Pricing ── -->
+<section id="pricing">
+  <div class="container">
+    <div class="section-tag">Pricing</div>
+    <h2 class="section-title">Simple, honest pricing</h2>
+    <p class="section-sub">Start free. Upgrade when you need more.</p>
+    <div class="pricing-grid">
+      <div class="plan">
+        <div class="plan-name">Free</div>
+        <div class="plan-price">$0 <span>/ month</span></div>
+        <div class="plan-desc">Perfect for individuals getting started.</div>
+        <ul class="plan-features">
+          <li>50 memories</li>
+          <li>All 4 AI platforms</li>
+          <li>Semantic search</li>
+          <li>Auto-injection</li>
+        </ul>
+        <a class="plan-btn plan-btn-outline" href="https://chromewebstore.google.com" target="_blank">Get started free</a>
+      </div>
+      <div class="plan popular">
+        <div class="popular-badge">Most Popular</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">$9 <span>/ month</span></div>
+        <div class="plan-desc">Unlimited memory for power users.</div>
+        <ul class="plan-features">
+          <li>Unlimited memories</li>
+          <li>All 4 AI platforms</li>
+          <li>Priority semantic search</li>
+          <li>Auto-injection</li>
+          <li>Memory analytics</li>
+        </ul>
+        <a class="plan-btn plan-btn-primary" href="https://chromewebstore.google.com" target="_blank">Get Pro</a>
+      </div>
+      <div class="plan">
+        <div class="plan-name">Team</div>
+        <div class="plan-price">$29 <span>/ month</span></div>
+        <div class="plan-desc">Shared memory namespace for your whole team.</div>
+        <ul class="plan-features">
+          <li>Unlimited memories</li>
+          <li>Shared team namespace</li>
+          <li>All Pro features</li>
+          <li>Team invite management</li>
+          <li>Priority support</li>
+        </ul>
+        <a class="plan-btn plan-btn-outline" href="https://chromewebstore.google.com" target="_blank">Get Team</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FAQ ── -->
+<section id="faq">
+  <div class="container">
+    <div class="section-tag">FAQ</div>
+    <h2 class="section-title">Common questions</h2>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Is Mnemox really free? <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">Yes. The free plan gives you 50 memories, all 4 AI platforms, and full semantic search — no credit card required.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Which AI tools does Mnemox support? <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">Mnemox works with ChatGPT, Claude, Gemini, and Microsoft Copilot. More platforms are coming soon.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Is my data private? <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">Yes. Your memories are stored in your account only. We do not share, sell, or train on your data. You can delete all memories at any time from the dashboard.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          How does the auto-injection work? <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">When you open an AI chat, Mnemox searches your memory store for relevant context and prepends it to your prompt — automatically. You can toggle this on or off from the popup.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Can I use Mnemox with my team? <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">Yes. The Team plan gives your whole team a shared memory namespace so every team member's AI has the same context about your company and projects.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<section class="cta-section">
+  <div class="container">
+    <h2>Ready to stop repeating yourself?</h2>
+    <p>Add Mnemox to Chrome for free — no credit card, works in 60 seconds.</p>
+    <a class="btn-primary" href="https://chromewebstore.google.com" target="_blank">Add to Chrome — Free</a>
+  </div>
+</section>
+
+</div><!-- /#main-content -->
+
+<!-- ══════════════════════════════════════════════════════════
+     PRIVACY PAGE
+══════════════════════════════════════════════════════════ -->
+<div id="privacy-page">
+  <div class="privacy-content">
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: May 30, 2026</p>
+
+    <p>Mnemox ("we", "us", or "our") operates the Mnemox Chrome extension and the website mnemoxpro.com. This Privacy Policy explains how we collect, use, and protect your information.</p>
+
+    <h2>1. Information We Collect</h2>
+    <p>We collect the following information when you use Mnemox:</p>
+    <ul>
+      <li><strong>Account information:</strong> Your email address when you sign up.</li>
+      <li><strong>Memory content:</strong> Prompts and context you capture while using AI tools.</li>
+      <li><strong>Authentication tokens:</strong> JWT tokens used to authenticate your session.</li>
+      <li><strong>Extension settings:</strong> Your preferences stored locally in Chrome storage.</li>
+    </ul>
+
+    <h2>2. How We Use Your Information</h2>
+    <ul>
+      <li>To provide the memory capture and injection service.</li>
+      <li>To authenticate you securely across sessions.</li>
+      <li>To enable semantic search across your memories.</li>
+      <li>To manage your subscription if you upgrade to a paid plan.</li>
+    </ul>
+
+    <h2>3. Data Storage</h2>
+    <p>Your memories are stored in a secure database (Supabase) and a vector store (Qdrant) hosted on cloud infrastructure. Memory content is associated with your user account only and is not accessible to other users.</p>
+
+    <h2>4. Data Sharing</h2>
+    <p>We do not sell, rent, or share your personal data with third parties, except:</p>
+    <ul>
+      <li><strong>Service providers:</strong> Supabase (database), Qdrant (vector storage), OpenAI (embeddings generation), and Stripe (payment processing) as necessary to operate the service.</li>
+      <li><strong>Legal requirements:</strong> If required by law or to protect our rights.</li>
+    </ul>
+
+    <h2>5. Data Retention</h2>
+    <p>We retain your data for as long as your account is active. You can delete individual memories from the dashboard at any time. To delete your account and all associated data, contact us at privacy@mnemoxpro.com.</p>
+
+    <h2>6. Permissions Used by the Extension</h2>
+    <ul>
+      <li><strong>storage:</strong> To save your settings and memories locally between sessions.</li>
+      <li><strong>activeTab:</strong> To detect which AI platform you are using.</li>
+      <li><strong>scripting:</strong> To inject memory context into AI chat interfaces.</li>
+      <li><strong>Host permissions (chatgpt.com, claude.ai, gemini.google.com, copilot.microsoft.com):</strong> To run content scripts on supported AI platforms.</li>
+    </ul>
+
+    <h2>7. Security</h2>
+    <p>We use industry-standard security measures including HTTPS, JWT-based authentication, and row-level security in our database. No method of transmission over the Internet is 100% secure, however, and we cannot guarantee absolute security.</p>
+
+    <h2>8. Children's Privacy</h2>
+    <p>Mnemox is not directed at children under 13. We do not knowingly collect personal information from children under 13.</p>
+
+    <h2>9. Changes to This Policy</h2>
+    <p>We may update this Privacy Policy from time to time. We will notify you of any changes by updating the "Last updated" date at the top of this page.</p>
+
+    <h2>10. Contact Us</h2>
+    <p>If you have any questions about this Privacy Policy, please contact us at <a href="mailto:privacy@mnemoxpro.com">privacy@mnemoxpro.com</a>.</p>
+  </div>
+</div>
+
+<!-- ── Footer ── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <a class="nav-logo" href="#" onclick="showMain()" style="margin-bottom:.5rem">
+        <div class="logo-circle">M</div> Mnemox
+      </a>
+      <p>One memory layer across all your AI tools. Free forever.</p>
+    </div>
+    <div class="footer-links">
+      <h4>Product</h4>
+      <ul>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+      </ul>
+    </div>
+    <div class="footer-links">
+      <h4>Company</h4>
+      <ul>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="#" onclick="showPrivacy(); return false;">Privacy Policy</a></li>
+      </ul>
+    </div>
+    <div class="footer-links">
+      <h4>Contact</h4>
+      <ul>
+        <li><a href="mailto:hello@mnemoxpro.com">hello@mnemoxpro.com</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 SVK ITS Services LLC. All rights reserved.</span>
+    <a href="#" onclick="showPrivacy(); return false;" style="color:var(--muted)">Privacy Policy</a>
+  </div>
+</footer>
+
+<script>
+  // FAQ toggle
+  function toggleFaq(btn) {
+    const item = btn.closest('.faq-item');
+    item.classList.toggle('open');
+  }
+
+  // Privacy page routing
+  function showPrivacy() {
+    document.getElementById('main-content').classList.add('hidden');
+    document.getElementById('privacy-page').classList.add('active');
+    window.scrollTo(0, 0);
+    history.pushState({}, '', '/privacy');
+  }
+
+  function showMain() {
+    document.getElementById('main-content').classList.remove('hidden');
+    document.getElementById('privacy-page').classList.remove('active');
+    window.scrollTo(0, 0);
+    history.pushState({}, '', '/');
+  }
+
+  // Handle direct /privacy URL
+  if (window.location.pathname === '/privacy') {
+    showPrivacy();
+  }
+
+  // Handle browser back/forward
+  window.addEventListener('popstate', () => {
+    if (window.location.pathname === '/privacy') showPrivacy();
+    else showMain();
+  });
+</script>
+</body>
+</html>
