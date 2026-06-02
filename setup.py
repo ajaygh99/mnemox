@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
-Mnemox Lifecycle Automation CLI
-================================
-Full E2E automation: secrets → deploy backend → deploy website → package extension → ProductHunt draft
+Product Lifecycle Automation CLI
+==================================
+Product-agnostic E2E automation. All product details come from product.config.json.
+To use for a NEW project: copy setup.py + .env.template to your new project folder,
+edit product.config.json with your new product details, and run python setup.py.
 
 Usage:
   python setup.py              # Full setup wizard
@@ -23,6 +25,21 @@ import argparse
 from pathlib import Path
 from datetime import datetime, timedelta
 
+# ── Load product config ──────────────────────────────────────────────────────
+ROOT = Path(__file__).parent
+CONFIG_FILE = ROOT / "product.config.json"
+
+def load_config():
+    if not CONFIG_FILE.exists():
+        print(f"  ❌  product.config.json not found at {CONFIG_FILE}")
+        print("  Create it first — see .env.template for reference.")
+        sys.exit(1)
+    return json.loads(CONFIG_FILE.read_text())
+
+CFG = load_config()
+PRODUCT_NAME = CFG["product"]["name"]
+PRODUCT_WEBSITE = CFG["product"]["website"]
+
 # ── Terminal colors ─────────────────────────────────────────────────────────
 class C:
     PURPLE  = "\033[95m"
@@ -41,7 +58,7 @@ def p(text, color=C.RESET, end="\n"):
 def header(text):
     width = 60
     p("=" * width, C.PURPLE)
-    p(f"  {text}", C.BOLD + C.PURPLE)
+    p(f"  [{PRODUCT_NAME}] {text}", C.BOLD + C.PURPLE)
     p("=" * width, C.PURPLE)
 
 def step(n, text):
@@ -72,13 +89,12 @@ def confirm(prompt):
     return input().strip().lower() == "y"
 
 # ── Paths ────────────────────────────────────────────────────────────────────
-ROOT = Path(__file__).parent
 ENV_FILE = ROOT / ".env"
 ENV_TEMPLATE = ROOT / ".env.template"
-BACKEND_DIR = ROOT / "backend"
-WEBSITE_DIR = ROOT / "website"
-EXTENSION_DIR = ROOT / "extension"
-OUTPUTS_DIR = ROOT / "dist"
+BACKEND_DIR  = ROOT / CFG["deploy"]["backend_dir"]
+WEBSITE_DIR  = ROOT / CFG["deploy"]["website_dir"]
+EXTENSION_DIR = ROOT / CFG["deploy"]["extension_dir"]
+OUTPUTS_DIR  = ROOT / "dist"
 
 # ── Secret definitions ────────────────────────────────────────────────────────
 SECRETS = [
@@ -452,34 +468,35 @@ def generate_ph_draft(env):
     next_tuesday = today + timedelta(days=days_ahead)
     launch_date = next_tuesday.strftime("%A, %B %d, %Y")
 
-    draft = f"""# Mnemox — ProductHunt Launch Draft
+    p = CFG["product"]
+    pr = CFG["pricing"]
+    ph = CFG["producthunt"]
+    plans_text = "\n".join(f"  - {pl['name']}: {pl['price']}" for pl in pr["plans"])
+    tags_text = ", ".join(ph["tags"])
+
+    draft = f"""# {p['name']} — ProductHunt Launch Draft
 Generated: {datetime.now().strftime("%Y-%m-%d %H:%M")}
-Recommended Launch Date: {launch_date} at 12:01 AM PST
+Recommended Launch Date: {launch_date} at {ph['launch_time']}
 
 ---
 
 ## LISTING DETAILS
 
-**Product Name:** Mnemox
+**Product Name:** {p['name']}
 
 **Tagline (60 chars max):**
-One memory layer across ChatGPT, Claude, Gemini & Copilot
+{p['tagline']}
 
 **Description:**
-Mnemox is a Chrome extension that gives you one universal memory across all your AI tools.
-It automatically captures important context from your conversations and injects it into future chats
-— so you never have to repeat yourself again.
-Works with ChatGPT, Claude, Gemini, and Microsoft Copilot. Free forever.
+{p['description']}
 
-**Website:** https://mnemoxpro.com
-**Category:** Productivity → Chrome Extensions
-**Tags:** Artificial Intelligence, Productivity, Chrome Extensions
+**Website:** {p['website']}
+**Category:** {ph['category']}
+**Tags:** {tags_text}
 **Pricing:** Paid (with a free plan)
-  - Free: Up to 50 memories
-  - Pro: $9/month — Unlimited memories
-  - Team: $29/month — Shared memory workspace
+{plans_text}
 
-**Promo Code:** PHUNT50 (50% off Pro for 3 months, max 100 redemptions, expires June 30 2026)
+**Promo Code:** {pr['promo_code']} ({pr['promo_description']}, max 100 redemptions)
 
 ---
 
@@ -605,11 +622,10 @@ Free: mnemoxpro.com
 - 5+ press/blog mentions
 """
 
-    draft_path = OUTPUTS_DIR / "PRODUCTHUNT_LAUNCH_DRAFT.md"
+    draft_path = OUTPUTS_DIR / f"{p['name'].upper()}_PRODUCTHUNT_DRAFT.md"
     draft_path.write_text(draft)
 
-    # Also copy to root
-    root_copy = ROOT / "PRODUCTHUNT_LAUNCH_DRAFT.md"
+    root_copy = ROOT / f"{p['name'].upper()}_PRODUCTHUNT_DRAFT.md"
     shutil.copy(draft_path, root_copy)
 
     ok(f"ProductHunt draft saved: {draft_path}")
@@ -623,7 +639,7 @@ def check_status(env):
     import urllib.request
     services = [
         ("Backend API", env.get("BACKEND_URL", "") + "/health"),
-        ("Marketing Site", "https://mnemoxpro.com"),
+        (f"{PRODUCT_NAME} Website", CFG["product"]["website"]),
     ]
 
     for name, url in services:
@@ -695,7 +711,7 @@ def main():
         return
 
     # ── Full wizard ──
-    header("MNEMOX FULL LIFECYCLE SETUP")
+    header("FULL LIFECYCLE SETUP")
     p("This will configure secrets, deploy everything, and generate launch assets.\n", C.CYAN)
 
     # Step 1: Secrets

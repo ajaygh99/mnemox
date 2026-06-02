@@ -1,0 +1,35 @@
+{
+  "product": {
+    "name": "Mnemox",
+    "tagline": "One memory layer across ChatGPT, Claude, Gemini & Copilot",
+    "description": "Mnemox is a Chrome extension that gives you one universal memory across all your AI tools. It automatically captures important context from your conversations and injects it into future chats — so you never have to repeat yourself again. Works with ChatGPT, Claude, Gemini, and Microsoft Copilot. Free forever.",
+    "website": "https://mnemoxpro.com",
+    "company": "SVK IT Services LLC",
+    "github_repo": "https://github.com/ajaygh99/mnemox",
+    "support_email": "hello@mnemoxpro.com",
+    "twitter": "@mnemoxpro",
+    "reddit": "u/mnemox_app"
+  },
+  "pricing": {
+    "free_limit": "50 memories",
+    "plans": [
+      { "name": "Free",  "price": "$0/month",  "stripe_price_env": "" },
+      { "name": "Pro",   "price": "$9/month",  "stripe_price_env": "STRIPE_PRO_PRICE_ID" },
+      { "name": "Team",  "price": "$29/month", "stripe_price_env": "STRIPE_TEAM_PRICE_ID" }
+    ],
+    "promo_code": "PHUNT50",
+    "promo_description": "50% off Pro for 3 months"
+  },
+  "deploy": {
+    "backend_url_env": "BACKEND_URL",
+    "backend_dir": "backend",
+    "website_dir": "website",
+    "extension_dir": "extension"
+  },
+  "producthunt": {
+    "category": "Productivity",
+    "tags": ["Artificial Intelligence", "Productivity", "Chrome Extensions"],
+    "launch_day": "Tuesday",
+    "launch_time": "12:01 AM PST"
+  }
+}
