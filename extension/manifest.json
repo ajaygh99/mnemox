@@ -6,8 +6,7 @@
   "description": "One Memory. Every AI. Mnemox remembers your context across ChatGPT, Claude, Gemini, and Copilot.",
   "permissions": [
     "storage",
-    "activeTab",
-    "scripting"
+    "activeTab"
   ],
   "host_permissions": [
     "https://chat.openai.com/*",
