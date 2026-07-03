@@ -54,10 +54,13 @@ app = FastAPI(
 )
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
+# allow_origins=["*"] so Chrome extensions (chrome-extension://<id>) can call
+# the anonymous /traces endpoints. allow_credentials must be False with "*".
+# Auth uses Authorization: Bearer header (not cookies), so this is safe.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["GET", "POST", "DELETE", "PUT"],
     allow_headers=["*"],
 )
