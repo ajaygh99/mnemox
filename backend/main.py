@@ -10,11 +10,12 @@ from config import get_settings
 from models import (
     MemoryCreate, MemoryResponse, MemoriesListResponse,
     Memory, HealthResponse, SearchRequest, SearchResponse,
+    TraceCreate, TraceResponse,
     UserProfile, CheckoutRequest, CheckoutResponse,
     BillingPortalRequest, BillingPortalResponse, PlansResponse, PlanInfo,
     TeamInvite, TeamResponse,
 )
-from database import save_memory, get_memories, delete_memory, get_memory_count, health_check_db
+from database import save_memory, get_memories, delete_memory, get_memory_count, health_check_db, save_trace
 from embeddings import embed_text
 from vector_store import (
     ensure_collection, upsert_memory_vector,
@@ -200,6 +201,22 @@ async def remove_memory(
     except Exception as e:
         logger.warning(f"Vector delete failed for {memory_id}: {e}")
     return {"success": True, "id": memory_id}
+
+
+# ── Traces ───────────────────────────────────────────────────────────────────
+
+@app.post("/traces", response_model=TraceResponse, tags=["Traces"])
+async def create_trace(payload: TraceCreate):
+    """Log an AI interaction trace (prompt + response + scores).
+    No auth required — uses mnemox_uuid to identify anonymous users.
+    Write-once: the traces table has INSERT/SELECT RLS only (no UPDATE/DELETE).
+    """
+    try:
+        saved = await save_trace(payload.model_dump())
+        return TraceResponse(success=True, id=saved["id"])
+    except Exception as e:
+        logger.error(f"Failed to save trace: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ── Billing ───────────────────────────────────────────────────────────────────

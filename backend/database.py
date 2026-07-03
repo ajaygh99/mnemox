@@ -99,3 +99,34 @@ async def get_memory_count(user_id: str | None = None) -> int:
         query = query.eq("user_id", user_id)
     response = query.execute()
     return response.count or 0
+
+
+# ── Trace CRUD ────────────────────────────────────────────────────────────────
+
+async def save_trace(payload) -> dict:
+    """Insert a new AI interaction trace into Supabase (write-once, no UPDATE/DELETE)"""
+    client = get_supabase()
+
+    record = {
+        "id":            str(uuid.uuid4()),
+        "user_id":       payload.get("user_id"),
+        "mnemox_uuid":   payload.get("mnemox_uuid"),
+        "tool_name":     payload["tool_name"],
+        "prompt_text":   payload["prompt_text"],
+        "response_text": payload.get("response_text"),
+        "prompt_score":  payload.get("prompt_score"),
+        "prompt_grade":  payload.get("prompt_grade"),
+        "trust_score":   payload.get("trust_score"),
+        "token_count":   payload.get("token_count"),
+        "session_id":    payload.get("session_id"),
+        "created_at":    datetime.now(timezone.utc).isoformat(),
+    }
+
+    response = client.table("traces").insert(record).execute()
+
+    if not response.data:
+        raise RuntimeError("Failed to insert trace into Supabase")
+
+    saved = response.data[0]
+    logger.info(f"Trace saved: {saved['id']} from {saved['tool_name']}")
+    return saved
