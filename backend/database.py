@@ -103,6 +103,17 @@ async def get_memory_count(user_id: str | None = None) -> int:
 
 # ── Trace CRUD ────────────────────────────────────────────────────────────────
 
+async def get_traces(mnemox_uuid: str | None = None, limit: int = 50) -> list[dict]:
+    """Retrieve traces filtered by mnemox_uuid"""
+    client = get_supabase()
+    query = client.table("traces").select("*")
+    if mnemox_uuid:
+        query = query.eq("mnemox_uuid", mnemox_uuid)
+    query = query.order("created_at", desc=True).limit(limit)
+    response = query.execute()
+    return response.data or []
+
+
 async def save_trace(payload) -> dict:
     """Insert a new AI interaction trace into Supabase (write-once, no UPDATE/DELETE)"""
     client = get_supabase()

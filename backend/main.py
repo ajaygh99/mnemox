@@ -15,7 +15,7 @@ from models import (
     BillingPortalRequest, BillingPortalResponse, PlansResponse, PlanInfo,
     TeamInvite, TeamResponse,
 )
-from database import save_memory, get_memories, delete_memory, get_memory_count, health_check_db, save_trace
+from database import save_memory, get_memories, delete_memory, get_memory_count, health_check_db, save_trace, get_traces
 from embeddings import embed_text
 from vector_store import (
     ensure_collection, upsert_memory_vector,
@@ -204,6 +204,20 @@ async def remove_memory(
 
 
 # ── Traces ───────────────────────────────────────────────────────────────────
+
+@app.get("/traces", tags=["Traces"])
+async def list_traces(
+    mnemox_uuid: str | None = Query(None),
+    limit: int = Query(20, ge=1, le=100),
+):
+    """List traces for a given mnemox_uuid. No auth required — anonymous via uuid."""
+    try:
+        traces = await get_traces(mnemox_uuid=mnemox_uuid, limit=limit)
+        return {"success": True, "traces": traces, "total": len(traces)}
+    except Exception as e:
+        logger.error(f"Failed to list traces: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/traces", response_model=TraceResponse, tags=["Traces"])
 async def create_trace(payload: TraceCreate):
