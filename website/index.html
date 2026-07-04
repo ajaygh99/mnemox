@@ -453,59 +453,64 @@
 <div id="privacy-page">
   <div class="privacy-content">
     <h1>Privacy Policy</h1>
-    <p class="updated">Last updated: May 30, 2026</p>
+    <p class="updated">Last updated: July 4, 2026</p>
 
-    <p>Mnemox ("we", "us", or "our") operates the Mnemox Chrome extension and the website mnemoxpro.com. This Privacy Policy explains how we collect, use, and protect your information.</p>
+    <p>Mnemox ("we", "us", or "our") operates the Mnemox Chrome extension and the website mnemoxpro.com. This Privacy Policy explains what data the Extension collects, how it is handled, where it is stored, and whether it is shared with anyone. It reflects what the currently published version of the Extension actually does.</p>
 
-    <h2>1. Information We Collect</h2>
-    <p>We collect the following information when you use Mnemox:</p>
+    <h2>1. What runs entirely on your device (no data sent anywhere)</h2>
+    <p>By default, all of the following happen locally in your browser and are never transmitted:</p>
     <ul>
-      <li><strong>Account information:</strong> Your email address when you sign up.</li>
-      <li><strong>Memory content:</strong> Prompts and context you capture while using AI tools.</li>
-      <li><strong>Authentication tokens:</strong> JWT tokens used to authenticate your session.</li>
-      <li><strong>Extension settings:</strong> Your preferences stored locally in Chrome storage.</li>
+      <li>Reading the prompt you're typing and the AI's response text on supported platforms (ChatGPT, Claude, Gemini, Microsoft Copilot, Perplexity, and Grok/X), to compute a prompt-quality score, an estimated token count, and a response-quality ("MnemoxTrust") score.</li>
+      <li>Showing the floating score badge and coaching panel.</li>
+      <li>Storing your last score, last response-quality result, session count, and feature preferences in <code>chrome.storage.local</code> — this stays on your device.</li>
+    </ul>
+    <p>The Extension does not collect passwords, payment information, or data from any site outside the supported AI platforms.</p>
+
+    <h2>2. Optional: Cloud Traces (off by default)</h2>
+    <p>The popup includes a "Cloud Traces" toggle that is <strong>off by default</strong>. If — and only if — you turn it on:</p>
+    <ul>
+      <li>The text of your prompt and the AI's response (each truncated to 5,000 characters), the platform name, your prompt/trust scores, and token count are sent to our backend (mnemox-production.up.railway.app) so they can appear in the in-extension Traces dashboard.</li>
+      <li>This is tied to a randomly generated device ID (<code>mnemox_uuid</code>) created on install. No account, email, or sign-up is required or used by the Extension itself, and this ID cannot be linked to your identity by us.</li>
+      <li>You can turn this off at any time from the popup; no further data is sent to the Traces dashboard from the point you turn it off.</li>
+    </ul>
+    <p>Separately, the Extension pings our backend's <code>/health</code> endpoint on browser startup to keep it warm — this request carries no prompt content or identifiers.</p>
+
+    <h2>3. Data Retention</h2>
+    <ul>
+      <li>Locally stored data persists until you clear the Extension's storage or remove the Extension.</li>
+      <li>If you've enabled Cloud Traces, traces are retained on our backend, keyed to your anonymous device ID, until you request deletion (contact below) or we implement in-dashboard deletion.</li>
     </ul>
 
-    <h2>2. How We Use Your Information</h2>
+    <h2>4. Optional Local MCP Integration</h2>
+    <p>Mnemox also offers a separately-installed developer companion tool (<code>mnemox-mcp</code>) that lets tools such as Claude Code or Cursor query Mnemox memory. If you install and configure this optional tool with your own backend credentials, memory you explicitly save through it is sent to the backend URL <em>you</em> configure. This component is opt-in, runs independently of the browser extension, and is not installed or activated by the Extension itself.</p>
+
+    <h2>5. Data Sharing</h2>
+    <p>We do not sell, rent, or share your data with third parties. We do not use your data for advertising, and we do not allow third parties to use it for creditworthiness or lending purposes. Cloud Traces data (only if you opt in) is processed by our hosting provider (Railway) solely to run the backend.</p>
+
+    <h2>6. Your Controls</h2>
     <ul>
-      <li>To provide the memory capture and injection service.</li>
-      <li>To authenticate you securely across sessions.</li>
-      <li>To enable semantic search across your memories.</li>
-      <li>To manage your subscription if you upgrade to a paid plan.</li>
+      <li>Toggle Cloud Traces on/off anytime from the popup.</li>
+      <li>Clear or delete all locally stored data by removing the Extension from your browser, or via your browser's extension storage settings.</li>
+      <li>Request deletion of any Cloud Traces data tied to your device ID by contacting us below.</li>
     </ul>
 
-    <h2>3. Data Storage</h2>
-    <p>Your memories are stored in a secure database (Supabase) and a vector store (Qdrant) hosted on cloud infrastructure. Memory content is associated with your user account only and is not accessible to other users.</p>
-
-    <h2>4. Data Sharing</h2>
-    <p>We do not sell, rent, or share your personal data with third parties, except:</p>
+    <h2>7. Permissions Used by the Extension</h2>
     <ul>
-      <li><strong>Service providers:</strong> Supabase (database), Qdrant (vector storage), OpenAI (embeddings generation), and Stripe (payment processing) as necessary to operate the service.</li>
-      <li><strong>Legal requirements:</strong> If required by law or to protect our rights.</li>
+      <li><strong>storage:</strong> To save prompt scores, session stats, and feature-flag/consent preferences locally.</li>
+      <li><strong>scripting:</strong> To inject the local scoring engine into supported AI chat pages.</li>
+      <li><strong>activeTab:</strong> To access the current tab's text input fields.</li>
+      <li><strong>tabs:</strong> To open the Traces dashboard tab from the popup.</li>
+      <li><strong>Host permissions</strong> (chatgpt.com, chat.openai.com, claude.ai, gemini.google.com, copilot.microsoft.com, perplexity.ai, x.com, grok.com, mnemox-production.up.railway.app): Scoped to the specific AI platforms Mnemox supports, plus the Mnemox API host used only when the optional Cloud Traces toggle is on.</li>
     </ul>
-
-    <h2>5. Data Retention</h2>
-    <p>We retain your data for as long as your account is active. You can delete individual memories from the dashboard at any time. To delete your account and all associated data, contact us at privacy@mnemoxpro.com.</p>
-
-    <h2>6. Permissions Used by the Extension</h2>
-    <ul>
-      <li><strong>storage:</strong> To save your settings and memories locally between sessions.</li>
-      <li><strong>activeTab:</strong> To detect which AI platform you are using.</li>
-      <li><strong>scripting:</strong> To inject memory context into AI chat interfaces.</li>
-      <li><strong>Host permissions (chatgpt.com, claude.ai, gemini.google.com, copilot.microsoft.com):</strong> To run content scripts on supported AI platforms.</li>
-    </ul>
-
-    <h2>7. Security</h2>
-    <p>We use industry-standard security measures including HTTPS, JWT-based authentication, and row-level security in our database. No method of transmission over the Internet is 100% secure, however, and we cannot guarantee absolute security.</p>
 
     <h2>8. Children's Privacy</h2>
     <p>Mnemox is not directed at children under 13. We do not knowingly collect personal information from children under 13.</p>
 
     <h2>9. Changes to This Policy</h2>
-    <p>We may update this Privacy Policy from time to time. We will notify you of any changes by updating the "Last updated" date at the top of this page.</p>
+    <p>We may update this Privacy Policy from time to time. We will notify you of any changes by updating the "Last updated" date at the top of this page and, for material changes, note them in the Extension's Chrome Web Store listing.</p>
 
     <h2>10. Contact Us</h2>
-    <p>If you have any questions about this Privacy Policy,  please contact us at <a href="mailto:privacy@mnemoxpro.com">privacy@mnemoxpro.com</a>.</p>
+    <p>If you have any questions about this Privacy Policy, please contact us at <a href="mailto:ajjukak123@gmail.com">ajjukak123@gmail.com</a>.</p>
   </div>
 </div>
 
