@@ -9,8 +9,9 @@ from datetime import datetime
 
 class MemoryCreate(BaseModel):
     content: str = Field(..., min_length=1, max_length=5000)
-    source: str = Field(..., pattern="^(chatgpt|claude|gemini|copilot)$")
+    source: str = Field(..., pattern="^(chatgpt|claude|gemini|copilot|perplexity|grok|copilot_ms)$")
     user_id: Optional[str] = None
+    trust_score: Optional[float] = Field(None, ge=0.0, le=1.0)
 
 
 class Memory(BaseModel):
@@ -20,9 +21,52 @@ class Memory(BaseModel):
     user_id: Optional[str] = None
     created_at: datetime
     injected: bool = False
+    trust_score: Optional[float] = None  # AI Response Quality Score (0.0-1.0). None = not yet scored.
 
     class Config:
         from_attributes = True
+
+
+# ── Trace Models (MnemoxTrace -- AI Interaction Log) ──────────────────────────
+
+class TraceCreate(BaseModel):
+    tool_name: str = Field(..., pattern="^(chatgpt|claude|gemini|copilot|perplexity|grok)$")
+    prompt_text: str = Field(..., min_length=1, max_length=10000)
+    response_text: Optional[str] = Field(None, max_length=20000)
+    prompt_score: Optional[int] = Field(None, ge=0, le=100)
+    prompt_grade: Optional[str] = None
+    trust_score: Optional[float] = Field(None, ge=0.0, le=1.0)
+    token_count: Optional[int] = None
+    session_id: Optional[str] = None
+    mnemox_uuid: Optional[str] = None
+
+
+class TraceResponse(BaseModel):
+    success: bool
+    id: str
+    message: str = "Interaction logged"
+
+
+class TraceRecord(BaseModel):
+    id: str
+    user_id: Optional[str]
+    tool_name: str
+    prompt_text: str
+    response_text: Optional[str]
+    prompt_score: Optional[int]
+    prompt_grade: Optional[str]
+    trust_score: Optional[float]
+    token_count: Optional[int]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class TracesListResponse(BaseModel):
+    success: bool
+    traces: List[TraceRecord]
+    total: int
 
 
 class MemoryResponse(BaseModel):
