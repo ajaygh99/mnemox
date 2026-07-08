@@ -75,7 +75,8 @@ document.getElementById('signup-btn').addEventListener('click', function() {
         if (response.needsConfirmation) {
           signinForm.style.display = 'none';
           signupForm.style.display = 'none';
-          document.body.innerHTML += '<div style="text-align:center;padding:20px"><div style="font-size:40px;margin-bottom:12px">📬</div><div style="color:#a78bfa;font-weight:600;margin-bottom:8px">Check your email!</div><div style="color:#9ca3af;font-size:13px">Click the confirmation link then come back and sign in.</div></div>';
+          hideError();
+          showConfirmationScreen(email);
         } else {
           window.location.href = 'popup.html';
         }
@@ -85,3 +86,44 @@ document.getElementById('signup-btn').addEventListener('click', function() {
     }
   );
 });
+
+// -- Post-signup confirmation screen -----------------------------------------
+// Built with real DOM nodes (not innerHTML +=) so it can't accidentally wipe
+// out existing listeners, and so the user's email is inserted safely.
+function showConfirmationScreen(email) {
+  var wrap = document.createElement('div');
+  wrap.id = 'confirm-screen';
+  wrap.style.cssText = 'width:100%;text-align:center;padding:12px 2px 4px;';
+
+  var icon = document.createElement('div');
+  icon.style.cssText = 'font-size:40px;margin-bottom:12px;';
+  icon.textContent = '📬';
+
+  var title = document.createElement('div');
+  title.style.cssText = 'color:#a78bfa;font-weight:700;font-size:16px;margin-bottom:8px;';
+  title.textContent = 'Account created — check your email!';
+
+  var body = document.createElement('div');
+  body.style.cssText = 'color:#9ca3af;font-size:13px;line-height:1.5;margin-bottom:18px;';
+  var strong = document.createElement('strong');
+  strong.style.color = '#e5e7eb';
+  strong.textContent = email;
+  body.appendChild(document.createTextNode('We sent a confirmation link to '));
+  body.appendChild(strong);
+  body.appendChild(document.createTextNode('. Click the link in that email, then come back here and sign in.'));
+
+  var backBtn = document.createElement('button');
+  backBtn.className = 'btn btn-secondary';
+  backBtn.textContent = 'Back to Sign In';
+  backBtn.addEventListener('click', function() {
+    wrap.remove();
+    signupForm.style.display = 'none';
+    signinForm.style.display = 'block';
+  });
+
+  wrap.appendChild(icon);
+  wrap.appendChild(title);
+  wrap.appendChild(body);
+  wrap.appendChild(backBtn);
+  document.body.appendChild(wrap);
+}

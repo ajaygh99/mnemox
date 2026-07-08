@@ -10,6 +10,16 @@ const MNEMOX_VERSION = '0.7.0';
 const SUPABASE_URL = 'https://srkxoqqnrvwdwdeunomw.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_yXbccj_6BjAGisLfOwv1-w_ScPTqEPk';
 
+// Where Supabase sends the browser after a confirmation-link click. This
+// extension has no hosted app to land the token on, so we point it at the
+// marketing site instead of leaving Supabase's project default in place
+// (which is the Supabase-generated 'http://localhost:3000' -- that only
+// exists on a developer's own machine, so every real user's confirmation
+// link would land on a dead page). This URL must also be added to
+// Authentication -> URL Configuration -> Redirect URLs in the Supabase
+// dashboard, or Supabase silently ignores it and falls back to Site URL.
+const EMAIL_REDIRECT_URL = 'https://mnemoxpro.com/';
+
 const AI_HOSTS = [
   'chat.openai.com', 'chatgpt.com',
   'claude.ai', 'gemini.google.com', 'copilot.microsoft.com',
@@ -133,7 +143,7 @@ async function handleSignUp(payload, sendResponse) {
     const { backendUrl } = await chrome.storage.local.get('backendUrl');
     const { supabaseUrl, supabaseAnonKey } = await getSupabaseConfig(backendUrl);
 
-    const response = await fetch(`${supabaseUrl}/auth/v1/signup`, {
+    const response = await fetch(`${supabaseUrl}/auth/v1/signup?redirect_to=${encodeURIComponent(EMAIL_REDIRECT_URL)}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
