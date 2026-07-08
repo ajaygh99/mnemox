@@ -3,6 +3,13 @@
 
 const MNEMOX_VERSION = '0.7.0';
 
+// Supabase project config — the anon/publishable key is safe to ship in
+// client code (it's rate-limited and access is enforced by RLS policies).
+// Previously this had no default and fell back to a placeholder domain,
+// which meant sign up/sign in could never succeed in the shipped build.
+const SUPABASE_URL = 'https://srkxoqqnrvwdwdeunomw.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_yXbccj_6BjAGisLfOwv1-w_ScPTqEPk';
+
 const AI_HOSTS = [
   'chat.openai.com', 'chatgpt.com',
   'claude.ai', 'gemini.google.com', 'copilot.microsoft.com',
@@ -188,12 +195,14 @@ async function handleGetAuthState(sendResponse) {
   });
 }
 
-// Get Supabase config — stored by user in settings (or env)
+// Get Supabase config — defaults to the shipped project config; storage
+// values (if ever set, e.g. for local dev against a different project)
+// take precedence.
 async function getSupabaseConfig(backendUrl) {
   const stored = await chrome.storage.local.get(['supabaseUrl', 'supabaseAnonKey']);
   return {
-    supabaseUrl: stored.supabaseUrl || 'https://your-project.supabase.co',
-    supabaseAnonKey: stored.supabaseAnonKey || '',
+    supabaseUrl: stored.supabaseUrl || SUPABASE_URL,
+    supabaseAnonKey: stored.supabaseAnonKey || SUPABASE_ANON_KEY,
   };
 }
 
