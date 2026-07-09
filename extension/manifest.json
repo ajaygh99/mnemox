@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Mnemox – Universal AI Memory",
+  "name": "Mnemox \u2013 Universal AI Memory",
   "short_name": "Mnemox",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "One Memory. Every AI. Mnemox remembers your context across ChatGPT, Claude, Gemini, and Copilot.",
   "permissions": [
     "storage",
@@ -34,22 +34,36 @@
         "https://chat.openai.com/*",
         "https://chatgpt.com/*"
       ],
-      "js": ["content/content.js"],
+      "js": [
+        "content/content.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://claude.ai/*"],
-      "js": ["content/content.js"],
+      "matches": [
+        "https://claude.ai/*"
+      ],
+      "js": [
+        "content/content.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://gemini.google.com/*"],
-      "js": ["content/content.js"],
+      "matches": [
+        "https://gemini.google.com/*"
+      ],
+      "js": [
+        "content/content.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://copilot.microsoft.com/*"],
-      "js": ["content/content.js"],
+      "matches": [
+        "https://copilot.microsoft.com/*"
+      ],
+      "js": [
+        "content/content.js"
+      ],
       "run_at": "document_idle"
     }
   ],

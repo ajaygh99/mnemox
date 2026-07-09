@@ -123,13 +123,13 @@
       </div>
     </div>
 
-    <button class="nav-btn active" onclick="showPage('memories')">
+    <button class="nav-btn active" id="nav-memories">
       <span class="nav-icon">🧠</span> Memories
     </button>
-    <button class="nav-btn" onclick="showPage('search')">
+    <button class="nav-btn" id="nav-search">
       <span class="nav-icon">🔍</span> Search
     </button>
-    <button class="nav-btn" onclick="showPage('settings')">
+    <button class="nav-btn" id="nav-settings">
       <span class="nav-icon">⚙️</span> Settings
     </button>
 
@@ -170,8 +170,8 @@
       </div>
 
       <div class="search-row">
-        <input class="search-input" id="mem-search" placeholder="Filter memories..." oninput="filterMemories()" />
-        <select class="filter-select" id="mem-filter" onchange="filterMemories()">
+        <input class="search-input" id="mem-search" placeholder="Filter memories..." />
+        <select class="filter-select" id="mem-filter">
           <option value="">All sources</option>
           <option value="chatgpt">ChatGPT</option>
           <option value="claude">Claude</option>
@@ -196,7 +196,7 @@
       </div>
       <div class="search-row">
         <input class="search-input" id="sem-query" placeholder="e.g. machine learning project, budget discussions..." />
-        <button class="btn-save" onclick="semanticSearch()">Search</button>
+        <button class="btn-save" id="sem-search-btn">Search</button>
       </div>
       <div class="memory-list" id="search-results">
         <div class="empty-state">
@@ -225,7 +225,7 @@
           <input id="s-api-key" type="password" placeholder="Your API_SECRET_KEY from .env" />
           <div class="field-hint">Must match API_SECRET_KEY in your backend .env file.</div>
         </div>
-        <button class="btn-save" onclick="saveBackendSettings()">Save & Test Connection</button>
+        <button class="btn-save" id="save-backend-btn">Save & Test Connection</button>
         <div class="status-msg" id="conn-status"></div>
       </div>
 
@@ -236,14 +236,14 @@
             <div class="toggle-label">Auto-capture prompts</div>
             <div class="toggle-desc">Save every prompt you send as a memory</div>
           </div>
-          <div class="toggle on" id="t-capture" onclick="toggleSetting('captureEnabled', 't-capture')"></div>
+          <div class="toggle on" id="t-capture"></div>
         </div>
         <div class="toggle-row">
           <div>
             <div class="toggle-label">Auto-inject memories</div>
             <div class="toggle-desc">Prepend relevant context before sending prompts</div>
           </div>
-          <div class="toggle on" id="t-inject" onclick="toggleSetting('injectEnabled', 't-inject')"></div>
+          <div class="toggle on" id="t-inject"></div>
         </div>
       </div>
 
@@ -252,7 +252,7 @@
         <p style="font-size:13px;color:#6b7280;margin-bottom:14px;">
           Permanently delete all locally stored memories. This cannot be undone.
         </p>
-        <button class="btn-danger" onclick="clearAllMemories()">Clear All Memories</button>
+        <button class="btn-danger" id="clear-all-btn">Clear All Memories</button>
         <div class="status-msg" id="clear-status"></div>
       </div>
     </div>
@@ -260,254 +260,6 @@
   </main>
 </div>
 
-<script>
-// State
-var allMemories = [];
-var settings = { captureEnabled: true, injectEnabled: true, backendUrl: '', apiKey: '' };
-
-// Navigation
-function showPage(name) {
-  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
-  document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
-  document.getElementById('page-' + name).classList.add('active');
-  event.currentTarget.classList.add('active');
-}
-
-// Load data from chrome.storage.local
-function loadData() {
-  if (typeof chrome === 'undefined' || !chrome.storage) {
-    // Dev mode outside extension -- use mock data
-    allMemories = [
-      { id: '1', content: 'Explain vector databases in simple terms', source: 'chatgpt', capturedAt: Date.now() - 86400000 },
-      { id: '2', content: 'Write a Python FastAPI endpoint for user auth', source: 'claude', capturedAt: Date.now() - 3600000 },
-      { id: '3', content: 'How do I reduce AI API costs for my startup', source: 'gemini', capturedAt: Date.now() - 1800000 },
-    ];
-    settings = { captureEnabled: true, injectEnabled: true, backendUrl: 'https://mnemox-production.up.railway.app', apiKey: '' };
-    renderAll();
-    return;
-  }
-
-  chrome.storage.local.get(
-    ['memories', 'captureEnabled', 'injectEnabled', 'backendUrl', 'apiKey'],
-    function(data) {
-      allMemories = (data.memories || []).slice().reverse(); // newest first
-      settings.captureEnabled = data.captureEnabled !== false;
-      settings.injectEnabled  = data.injectEnabled  !== false;
-      settings.backendUrl = data.backendUrl || '';
-      settings.apiKey     = data.apiKey     || '';
-      renderAll();
-    }
-  );
-}
-
-function renderAll() {
-  renderStats();
-  renderMemories(allMemories);
-  renderSettings();
-}
-
-// Stats
-function renderStats() {
-  var counts = { chatgpt: 0, claude: 0, gemini: 0, copilot: 0 };
-  allMemories.forEach(function(m) { if (counts[m.source] !== undefined) counts[m.source]++; });
-  document.getElementById('stat-total').textContent   = allMemories.length;
-  document.getElementById('stat-chatgpt').textContent = counts.chatgpt;
-  document.getElementById('stat-claude').textContent  = counts.claude;
-  document.getElementById('stat-other').textContent   = counts.gemini + counts.copilot;
-}
-
-// Memory list
-function filterMemories() {
-  var query  = document.getElementById('mem-search').value.toLowerCase();
-  var source = document.getElementById('mem-filter').value;
-  var filtered = allMemories.filter(function(m) {
-    var matchSource = !source || m.source === source;
-    var matchText   = !query  || m.content.toLowerCase().includes(query);
-    return matchSource && matchText;
-  });
-  renderMemories(filtered);
-}
-
-function renderMemories(list) {
-  var el = document.getElementById('memory-list');
-  if (!list.length) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon">🧠</div><div class="empty-text">No memories match your filter</div></div>';
-    return;
-  }
-  el.innerHTML = list.map(function(m) { return memoryCard(m); }).join('');
-}
-
-function memoryCard(m) {
-  var date = new Date(m.capturedAt || m.created_at).toLocaleString();
-  return '<div class="memory-card" id="card-' + m.id + '">' +
-    '<div class="memory-source"><span class="source-badge source-' + m.source + '">' + m.source + '</span></div>' +
-    '<div class="memory-body">' +
-      '<div class="memory-text" id="text-' + m.id + '">' + escHtml(m.content) + '</div>' +
-      '<div class="memory-meta">' + date + '</div>' +
-    '</div>' +
-    '<div class="memory-actions">' +
-      '<button class="btn-icon" onclick="expandMemory(\'' + m.id + '\')" title="Expand">⤢</button>' +
-      '<button class="btn-icon btn-delete" onclick="deleteMemory(\'' + m.id + '\')" title="Delete">🗑</button>' +
-    '</div>' +
-  '</div>';
-}
-
-function expandMemory(id) {
-  var el = document.getElementById('text-' + id);
-  if (el) el.classList.toggle('expanded');
-}
-
-function deleteMemory(id) {
-  allMemories = allMemories.filter(function(m) { return m.id !== id; });
-  if (typeof chrome !== 'undefined' && chrome.storage) {
-    chrome.storage.local.set({ memories: allMemories.slice().reverse(), memoryCount: allMemories.length });
-  }
-  var card = document.getElementById('card-' + id);
-  if (card) { card.style.opacity = '0'; card.style.transition = 'opacity 0.2s'; setTimeout(function() { filterMemories(); renderStats(); }, 200); }
-}
-
-// Semantic Search
-function semanticSearch() {
-  var query = document.getElementById('sem-query').value.trim();
-  var el = document.getElementById('search-results');
-  if (!query) return;
-
-  el.innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-text">Searching...</div></div>';
-
-  if (typeof chrome !== 'undefined' && chrome.runtime) {
-    chrome.runtime.sendMessage({
-      type: 'MNEMOX_SEARCH_MEMORIES',
-      payload: { query: query, limit: 10, score_threshold: 0.5 },
-    }, function(response) {
-      if (response && response.success && response.results.length) {
-        var matched = response.results.map(function(r) {
-          return allMemories.find(function(m) { return m.id === r.memory_id; }) ||
-            { id: r.memory_id, content: r.content_preview, source: r.source, capturedAt: r.created_at };
-        });
-        el.innerHTML = matched.map(function(m) { return memoryCard(m); }).join('');
-      } else {
-        el.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">No similar memories found</div></div>';
-      }
-    });
-  } else {
-    // Dev fallback: keyword search
-    var results = allMemories.filter(function(m) { return m.content.toLowerCase().includes(query.toLowerCase()); });
-    el.innerHTML = results.length ? results.map(memoryCard).join('') :
-      '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">No results</div></div>';
-  }
-}
-
-// Settings
-function renderSettings() {
-  document.getElementById('s-backend-url').value = settings.backendUrl || '';
-  document.getElementById('s-api-key').value     = settings.apiKey     || '';
-  document.getElementById('t-capture').className = 'toggle' + (settings.captureEnabled ? ' on' : '');
-  document.getElementById('t-inject').className  = 'toggle' + (settings.injectEnabled  ? ' on' : '');
-}
-
-function toggleSetting(key, toggleId) {
-  settings[key] = !settings[key];
-  document.getElementById(toggleId).classList.toggle('on', settings[key]);
-  if (typeof chrome !== 'undefined' && chrome.storage) {
-    var patch = {}; patch[key] = settings[key];
-    chrome.storage.local.set(patch);
-  }
-}
-
-function saveBackendSettings() {
-  var url = document.getElementById('s-backend-url').value.trim();
-  var key = document.getElementById('s-api-key').value.trim();
-  var statusEl = document.getElementById('conn-status');
-
-  if (typeof chrome !== 'undefined' && chrome.storage) {
-    chrome.storage.local.set({ backendUrl: url, apiKey: key });
-  }
-
-  statusEl.style.display = 'block';
-  statusEl.textContent = 'Saving...';
-
-  // Test connection
-  if (url && key) {
-    fetch(url + '/health', { headers: { 'X-API-Key': key } })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        statusEl.textContent = data.status === 'ok'
-          ? 'Connected! Supabase: ' + (data.supabase_connected ? 'OK' : 'Error') + ' | Qdrant: ' + (data.qdrant_connected ? 'OK' : 'Error')
-          : 'Backend reachable but degraded';
-        statusEl.style.color = data.status === 'ok' ? '#22c55e' : '#f59e0b';
-      })
-      .catch(function() {
-        statusEl.textContent = 'Saved locally (backend unreachable -- is it running?)';
-        statusEl.style.color = '#f59e0b';
-      });
-  } else {
-    statusEl.textContent = 'Settings saved (no backend URL provided -- using local mode)';
-    statusEl.style.color = '#9ca3af';
-  }
-}
-
-function clearAllMemories() {
-  if (!confirm('Delete ALL memories permanently? This cannot be undone.')) return;
-  allMemories = [];
-  if (typeof chrome !== 'undefined' && chrome.storage) {
-    chrome.storage.local.set({ memories: [], memoryCount: 0 });
-  }
-  renderAll();
-  var el = document.getElementById('clear-status');
-  el.style.display = 'block';
-  el.textContent = 'All memories cleared.';
-  el.style.color = '#f87171';
-}
-
-// Utility
-function escHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// Version / build identity
-// Shows the manifest version + this extension instance's runtime ID in the
-// sidebar footer. Useful for confirming which build/copy of the extension is
-// actually loaded, especially if more than one unpacked copy of Mnemox has
-// ever been loaded in chrome://extensions (each gets its own extension ID and
-// its own separate chrome.storage.local -- popup and dashboard will silently
-// disagree on memory counts if they end up backed by different IDs).
-(function showVersion() {
-  var el = document.getElementById('sidebar-version');
-  if (!el) return;
-  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) {
-    var v = chrome.runtime.getManifest().version;
-    var id = chrome.runtime.id || '';
-    el.textContent = 'v' + v + ' · Mnemox';
-    el.title = 'Extension ID: ' + id;
-  } else {
-    el.textContent = 'Mnemox (dev)';
-  }
-})();
-
-// Init
-loadData();
-// Allow Enter key to trigger semantic search
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter' && document.getElementById('sem-query') === document.activeElement) {
-    semanticSearch();
-  }
-});
-
-// Live-refresh: the dashboard is often left open in a tab while memories get
-// captured elsewhere (popup, content script on an AI site). Without this,
-// loadData() only ever ran once at page load, so the dashboard silently went
-// stale -- new memories existed in chrome.storage.local but never appeared
-// here until a manual reload. Re-run loadData() whenever the relevant keys
-// change, from any part of the extension.
-if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
-  chrome.storage.onChanged.addListener(function(changes, area) {
-    if (area !== 'local') return;
-    if (changes.memories || changes.captureEnabled || changes.injectEnabled ||
-        changes.backendUrl || changes.apiKey) {
-      loadData();
-    }
-  });
-}
-</script>
+<script src="dashboard.js"></script>
 </body>
 </html>

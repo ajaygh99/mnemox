@@ -161,8 +161,15 @@ def test_dashboard_html_exists():
 # ever ran once at page load with no chrome.storage.onChanged listener.
 
 def dashboard_html():
+    # 2026-07-09: dashboard JS moved out of an inline <script> block (blocked
+    # entirely by MV3's default CSP -- see tests/step6 for the full story)
+    # into an external dashboard.js. Concatenate both so existing assertions
+    # about dashboard behavior don't care which file a string lives in.
     with open(os.path.join(EXT, 'dashboard', 'index.html')) as f:
-        return f.read()
+        html = f.read()
+    with open(os.path.join(EXT, 'dashboard', 'dashboard.js')) as f:
+        js = f.read()
+    return html + '\n' + js
 
 
 def test_dashboard_has_storage_onchanged_listener():
@@ -228,3 +235,61 @@ def test_popup_version_reads_from_manifest():
 
 def test_popup_calls_showversion_on_load():
     assert "addEventListener('DOMContentLoaded', showVersion)" in popup_js()
+
+
+# -- Regression: dashboard must not use inline scripts (CSP-blocked) ----------
+# 2026-07-09: Chrome's extension error console showed the true root cause of
+# the "dashboard always shows 0 memories" bug: MV3's default CSP for
+# extension pages is "script-src 'self'", which blocks ALL inline script
+# execution -- both inline <script>...</script> blocks and inline
+# onclick=/onchange=/oninput= attributes (including ones injected via
+# innerHTML, like the old expandMemory()/deleteMemory() buttons). The
+# dashboard's entire script -- loadData(), the onChanged listener, the
+# version display -- silently never ran, on every single page load, the
+# whole time. This had nothing to do with live-refresh or duplicate
+# extension copies; both of those were red herrings chased before the real
+# error surfaced in chrome://extensions -> Errors. Fixed by moving all JS to
+# an external dashboard.js (allowed under 'self') and wiring every control
+# with addEventListener / event delegation instead of inline handlers.
+
+def test_dashboard_html_has_no_inline_script_block():
+    with open(os.path.join(EXT, 'dashboard', 'index.html')) as f:
+        html = f.read()
+    assert '<script>' not in html, \
+        "inline <script> blocks are silently blocked by MV3's default CSP"
+
+
+def test_dashboard_html_loads_external_script():
+    with open(os.path.join(EXT, 'dashboard', 'index.html')) as f:
+        html = f.read()
+    assert '<script src="dashboard.js">' in html
+
+
+def test_dashboard_html_has_no_inline_event_handlers():
+    with open(os.path.join(EXT, 'dashboard', 'index.html')) as f:
+        html = f.read()
+    for attr in ('onclick=', 'onchange=', 'oninput=', 'onsubmit='):
+        assert attr not in html, \
+            attr + ' is an inline script and is silently blocked by MV3 CSP'
+
+
+def test_dashboard_js_file_exists():
+    assert os.path.exists(os.path.join(EXT, 'dashboard', 'dashboard.js'))
+
+
+def test_dashboard_js_generated_cards_use_data_attributes_not_onclick():
+    with open(os.path.join(EXT, 'dashboard', 'dashboard.js')) as f:
+        js = f.read()
+    # memoryCard() builds HTML via innerHTML -- inline onclick= there is
+    # JUST as CSP-blocked as a static onclick= in the HTML file itself.
+    fn_match = re.search(r"function memoryCard[\s\S]*?\n}", js)
+    assert fn_match, "memoryCard() not found"
+    assert 'onclick=' not in fn_match.group(0)
+    assert 'data-action=' in fn_match.group(0)
+
+
+def test_dashboard_js_wires_events_programmatically():
+    with open(os.path.join(EXT, 'dashboard', 'dashboard.js')) as f:
+        js = f.read()
+    assert 'addEventListener' in js
+    assert 'function wireUpEvents' in js

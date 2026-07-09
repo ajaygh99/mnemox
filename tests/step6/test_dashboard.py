@@ -7,10 +7,27 @@ import os
 import pytest
 
 DASH = os.path.join(os.path.dirname(__file__), '..', '..', 'extension', 'dashboard', 'index.html')
+DASH_JS = os.path.join(os.path.dirname(__file__), '..', '..', 'extension', 'dashboard', 'dashboard.js')
 
 def read():
+    # 2026-07-09: the dashboard's JS used to be an inline <script> block
+    # inside index.html. Manifest V3's default CSP (script-src 'self')
+    # blocks ALL inline script execution in extension pages -- so that
+    # inline block silently never ran, which was the real root cause of the
+    # dashboard always showing "0 memories" (not a live-refresh problem).
+    # Chrome's extension error console confirmed it: "Executing inline
+    # script violates the following Content Security Policy directive:
+    # script-src 'self'... The action has been blocked."
+    # Fix: the JS now lives in an external dashboard.js file loaded via
+    # <script src="dashboard.js">, which is allowed under 'self'. These
+    # tests check the dashboard as a whole, so read() concatenates both
+    # files -- most of the assertions below don't care which file a given
+    # string lives in.
     with open(DASH) as f:
-        return f.read()
+        html = f.read()
+    with open(DASH_JS) as f:
+        js = f.read()
+    return html + '\n' + js
 
 def test_dashboard_file_exists():
     assert os.path.exists(DASH)
