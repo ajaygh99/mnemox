@@ -153,3 +153,31 @@ def test_view_memories_button_opens_dashboard():
 
 def test_dashboard_html_exists():
     assert os.path.exists(os.path.join(EXT, 'dashboard', 'index.html'))
+
+
+# -- Regression: dashboard must live-refresh, not just load once --------------
+# 2026-07-08 manual test: captured 2 memories while the dashboard tab was
+# already open; it kept showing "0 Total memories" because loadData() only
+# ever ran once at page load with no chrome.storage.onChanged listener.
+
+def dashboard_html():
+    with open(os.path.join(EXT, 'dashboard', 'index.html')) as f:
+        return f.read()
+
+
+def test_dashboard_has_storage_onchanged_listener():
+    assert 'chrome.storage.onChanged.addListener' in dashboard_html()
+
+
+def test_dashboard_onchanged_listener_calls_loaddata():
+    body = dashboard_html()
+    idx = body.find('chrome.storage.onChanged.addListener')
+    assert idx != -1, "onChanged listener not found"
+    assert 'loadData();' in body[idx:idx + 400]
+
+
+def test_dashboard_onchanged_watches_memories_key():
+    body = dashboard_html()
+    idx = body.find('chrome.storage.onChanged.addListener')
+    assert idx != -1
+    assert 'changes.memories' in body[idx:idx + 400]

@@ -472,6 +472,24 @@ document.addEventListener('keydown', function(e) {
     semanticSearch();
   }
 });
+
+
+
+// Live-refresh: the dashboard is often left open in a tab while memories get
+// captured elsewhere (popup, content script on an AI site). Without this,
+// loadData() only ever ran once at page load, so the dashboard silently went
+// stale -- new memories existed in chrome.storage.local but never appeared
+// here until a manual reload. Re-run loadData() whenever the relevant keys
+// change, from any part of the extension.
+if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener(function(changes, area) {
+    if (area !== 'local') return;
+    if (changes.memories || changes.captureEnabled || changes.injectEnabled ||
+        changes.backendUrl || changes.apiKey) {
+      loadData();
+    }
+  });
+}
 </script>
 </body>
 </html>
