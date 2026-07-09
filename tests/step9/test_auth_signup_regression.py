@@ -181,3 +181,50 @@ def test_dashboard_onchanged_watches_memories_key():
     idx = body.find('chrome.storage.onChanged.addListener')
     assert idx != -1
     assert 'changes.memories' in body[idx:idx + 400]
+
+
+# -- Regression: version/extension-ID must be visible in the UI ---------------
+# 2026-07-09 manual test: dashboard showed 0 memories while the popup showed
+# a nonzero count, on a genuinely fresh tab (not a stale-load issue). Root
+# cause investigation found the storage read/write path is correct end to
+# end -- the likely explanation is that two separate unpacked copies of the
+# extension got loaded at different times (user was confused between two
+# project folders throughout this project), each with its own extension ID
+# and therefore its own separate chrome.storage.local. Surfacing the manifest
+# version + runtime extension ID in both the popup and dashboard lets this be
+# diagnosed at a glance instead of guessing.
+
+def test_dashboard_shows_dynamic_version_not_hardcoded():
+    body = dashboard_html()
+    assert 'id="sidebar-version"' in body
+    assert 'v0.6.0 . Mnemox<' not in body, \
+        "sidebar footer must not be a hardcoded stale version string"
+
+
+def test_dashboard_version_reads_from_manifest():
+    body = dashboard_html()
+    # sidebar-version appears twice: once as the HTML element id, once again
+    # inside the showVersion() script block near the end of the file that
+    # actually populates it. Search from the last occurrence (the script).
+    idx = body.rfind('sidebar-version')
+    assert idx != -1
+    tail = body[idx:idx + 900]
+    assert 'chrome.runtime.getManifest().version' in tail
+    assert 'chrome.runtime.id' in tail
+
+
+def test_popup_shows_dynamic_version():
+    assert 'id="popup-version"' in popup_html()
+
+
+def test_popup_version_reads_from_manifest():
+    body = popup_js()
+    idx = body.find('function showVersion')
+    assert idx != -1, "showVersion() not found in popup.js"
+    fn_body = body[idx:idx + 500]
+    assert 'chrome.runtime.getManifest().version' in fn_body
+    assert 'chrome.runtime.id' in fn_body
+
+
+def test_popup_calls_showversion_on_load():
+    assert "addEventListener('DOMContentLoaded', showVersion)" in popup_js()

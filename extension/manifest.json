@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Mnemox – Universal AI Memory",
   "short_name": "Mnemox",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "One Memory. Every AI. Mnemox remembers your context across ChatGPT, Claude, Gemini, and Copilot.",
   "permissions": [
     "storage",

@@ -101,7 +101,16 @@ def test_brand_name_present():
     assert 'MNEMOX' in read()
 
 def test_version_updated():
-    assert '0.6.0' in read()
+    # 2026-07-09: the dashboard footer used to hardcode a version string
+    # ("v0.6.0 - Mnemox") that silently went stale with every release and
+    # gave no way to tell which build was actually loaded. It's now rendered
+    # dynamically from chrome.runtime.getManifest().version at runtime, so
+    # there's no hardcoded version string to assert on here anymore --
+    # assert the dynamic mechanism is wired up instead (see tests/step9 for
+    # full regression coverage of this behavior).
+    body = read()
+    assert 'id="sidebar-version"' in body
+    assert 'chrome.runtime.getManifest().version' in body
 
 def test_settings_persisted_to_storage():
     assert 'chrome.storage.local.set' in read()

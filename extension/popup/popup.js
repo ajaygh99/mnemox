@@ -2,23 +2,23 @@
 // Step 7: + Auth state check, plan badge, sign out
 
 const AI_SITES = {
-  'chat.openai.com':       { name: 'ChatGPT', icon: '🤖' },
-  'chatgpt.com':           { name: 'ChatGPT', icon: '🤖' },
-  'claude.ai':             { name: 'Claude',  icon: '🧠' },
+  'chat.openai.com':       { name: 'ChatGPT', icon: '\u{1F916}' },
+  'chatgpt.com':           { name: 'ChatGPT', icon: '\u{1F916}' },
+  'claude.ai':             { name: 'Claude',  icon: '\u{1F9E0}' },
   'gemini.google.com':     { name: 'Gemini',  icon: '✨' },
-  'copilot.microsoft.com': { name: 'Copilot', icon: '🔷' },
+  'copilot.microsoft.com': { name: 'Copilot', icon: '\u{1F537}' },
 };
 
 const PLAN_LABELS = { free: 'Free', pro: 'Pro ✦', team: 'Team ✦✦' };
 
-// ── Auth gate ─────────────────────────────────────────────────────────────────
+// -- Auth gate --------------------------------------------------------------
 async function checkAuth() {
   return new Promise(resolve => {
     chrome.runtime.sendMessage({ type: 'MNEMOX_AUTH_GET_STATE' }, resolve);
   });
 }
 
-// ── Load settings ─────────────────────────────────────────────────────────────
+// -- Load settings ------------------------------------------------------------
 async function loadSettings() {
   return new Promise(resolve => {
     chrome.storage.local.get(
@@ -32,7 +32,7 @@ async function saveSettings(patch) {
   return new Promise(resolve => chrome.storage.local.set(patch, resolve));
 }
 
-// ── Detect active AI site ─────────────────────────────────────────────────────
+// -- Detect active AI site -----------------------------------------------------
 async function detectActiveSite() {
   return new Promise(resolve => {
     chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
@@ -45,7 +45,7 @@ async function detectActiveSite() {
   });
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────────
+// -- Init ----------------------------------------------------------------------
 async function init() {
   // Step 7: check auth first
   const authState = await checkAuth();
@@ -144,3 +144,22 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// Shows manifest version + this extension instance's runtime ID, so it's
+// obvious which build is loaded and (more importantly) whether the popup and
+// the dashboard tab are actually the same loaded extension. If two unpacked
+// copies of Mnemox are ever loaded at once, they get different IDs and
+// completely separate chrome.storage.local -- that shows up as the popup's
+// memory count disagreeing with the dashboard's.
+function showVersion() {
+  var el = document.getElementById('popup-version');
+  if (!el) return;
+  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) {
+    var v = chrome.runtime.getManifest().version;
+    var id = chrome.runtime.id || '';
+    el.textContent = 'v' + v + ' · ' + id.slice(0, 8);
+    el.title = 'Extension ID: ' + id;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', showVersion);
