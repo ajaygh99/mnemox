@@ -45,6 +45,42 @@ async function detectActiveSite() {
   });
 }
 
+// -- Memory stats (kept live) --------------------------------------------------
+// 2026-07-09: this popup has no auto-refresh, and Chrome popups normally
+// close on blur -- but right-click -> Inspect pins a popup open for
+// debugging, decoupled from that auto-close behavior. A pinned-open popup's
+// memory count used to go stale the instant a new memory was captured while
+// it sat open, which looked exactly like a capture failure even when
+// capture actually succeeded (this is what made the Claude capture bug
+// look worse than it was during manual testing). Re-render whenever
+// memoryCount changes in storage, same pattern as the dashboard's live
+// refresh fix.
+function renderMemoryStats(count, plan) {
+  const countEl = document.getElementById('memory-count');
+  if (countEl) countEl.textContent = count;
+
+  if (plan === 'free') {
+    const limitEl = document.getElementById('limit-notice');
+    if (limitEl) {
+      const pct = Math.min(100, Math.round((count / 50) * 100));
+      limitEl.textContent = `${count}/50 memories (${pct}%)`;
+      limitEl.style.display = 'block';
+      limitEl.style.color = count >= 40 ? '#f87171' : '';
+    }
+  }
+}
+
+let mnemoxCurrentPlan = 'free';
+
+if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    if (changes.memoryCount) {
+      renderMemoryStats(changes.memoryCount.newValue || 0, mnemoxCurrentPlan);
+    }
+  });
+}
+
 // -- Init ----------------------------------------------------------------------
 async function init() {
   // Step 7: check auth first
@@ -61,6 +97,7 @@ async function init() {
 
   // Plan badge
   const plan = authState.plan || 'free';
+  mnemoxCurrentPlan = plan;
   const planEl = document.getElementById('plan-badge');
   if (planEl) {
     planEl.textContent = PLAN_LABELS[plan] || plan;
@@ -73,21 +110,11 @@ async function init() {
     userEl.textContent = authState.user.email;
   }
 
-  // Memory count
-  const countEl = document.getElementById('memory-count');
-  if (countEl) countEl.textContent = settings.memoryCount || 0;
-
-  // Free plan limit warning
-  if (plan === 'free') {
-    const limitEl = document.getElementById('limit-notice');
-    if (limitEl) {
-      const count = settings.memoryCount || 0;
-      const pct = Math.min(100, Math.round((count / 50) * 100));
-      limitEl.textContent = `${count}/50 memories (${pct}%)`;
-      limitEl.style.display = 'block';
-      if (count >= 40) limitEl.style.color = '#f87171';
-    }
-  }
+  // Memory count (kept live below via chrome.storage.onChanged, since a
+  // popup can be pinned open for a while -- e.g. via right-click Inspect --
+  // and its count would otherwise go stale the moment a new memory is
+  // captured while it's sitting open).
+  renderMemoryStats(settings.memoryCount || 0, plan);
 
   // Site badge
   const siteEl = document.getElementById('site-badge');

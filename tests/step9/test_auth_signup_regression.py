@@ -338,3 +338,36 @@ def test_submit_button_click_skips_own_synthetic_click():
     assert 'mnemoxOwnClick' in fn_body, \
         "programmatic post-injection click should be flagged so the " \
         "submit-button listener doesn't redundantly re-capture"
+
+
+# -- Regression: popup memory count must live-refresh too ---------------------
+# 2026-07-09: while investigating the Claude capture race, a popup pinned
+# open via right-click -> Inspect kept showing "0 memories saved" even after
+# a new message was sent and (per the fixed content.js) actually captured.
+# Root cause: popup.js has no chrome.storage.onChanged listener, so a
+# popup that stays open (normally popups auto-close on blur, but Inspect
+# pins them open, and users may also just glance back at an already-open
+# popup) never picks up storage changes after its one-time init() read.
+# This is the exact same class of bug as the dashboard's earlier stale-data
+# issue -- fixed the same way.
+
+def test_popup_has_storage_onchanged_listener():
+    assert 'chrome.storage.onChanged.addListener' in popup_js()
+
+
+def test_popup_onchanged_watches_memory_count():
+    body = popup_js()
+    idx = body.find('chrome.storage.onChanged.addListener')
+    assert idx != -1
+    assert 'changes.memoryCount' in body[idx:idx + 300]
+
+
+def test_popup_render_memory_stats_function_exists():
+    assert 'function renderMemoryStats' in popup_js()
+
+
+def test_popup_init_uses_render_memory_stats():
+    body = popup_js()
+    fn_match = re.search(r"async function init\(\)[\s\S]*?\n}", body)
+    assert fn_match, "init() not found"
+    assert 'renderMemoryStats(' in fn_match.group(0)
