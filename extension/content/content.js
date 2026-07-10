@@ -260,7 +260,23 @@
   function attachPromptListeners(promptEl) {
     if (promptEl._mnemoxAttached) return;
     promptEl._mnemoxAttached = true;
-    console.log('[Mnemox] Prompt wired on ' + CURRENT_SITE);
+    // 2026-07-09: v0.1.13's broadened selectors did NOT fix Claude capture
+    // reading empty text -- identical symptom before and after. That points
+    // at a deeper problem than selector wording: possibly promptEl isn't
+    // actually the element the user types into at all (our capture-phase
+    // keydown listener fires for any Enter press that passes THROUGH
+    // promptEl on its way down from document to the real target, which
+    // includes promptEl being an ANCESTOR of the real input -- not
+    // necessarily promptEl itself). Dumping the matched element's identity
+    // and structure at wire-time, unconditionally, so this is visible
+    // regardless of whether a later capture attempt succeeds or fails.
+    try {
+      console.log('[Mnemox] Prompt wired on ' + CURRENT_SITE + '. Matched element:', promptEl,
+        'tag=' + promptEl.tagName, 'class=' + promptEl.className,
+        'outerHTML(300)=' + promptEl.outerHTML.slice(0, 300));
+    } catch (err) {
+      console.log('[Mnemox] Prompt wired on ' + CURRENT_SITE + ' (element logging failed: ' + err.message + ')');
+    }
 
     // Set right before we programmatically click the submit button after
     // injection, so the submit-button click listener below (which also
@@ -269,27 +285,42 @@
     // redundant, racier re-capture attempt.
     var mnemoxOwnClick = false;
 
+    // 2026-07-09 fix -- ROOT CAUSE CONFIRMED via live console diagnostics:
+    //   "promptEl===activeElement: false, activeElement tag: BODY"
+    // at the exact moment our Enter keydown listener ran, with text already
+    // empty. promptEl WAS the correct element (verified via the wire-time
+    // dump: data-testid="chat-input", aria-label="Write your prompt to
+    // Claude") -- this was never a wrong-element problem. It's a same-
+    // element listener ORDERING race: Claude's own React onKeyDown handler
+    // is attached to this same contenteditable div and clears/blurs it
+    // synchronously before our listener runs, because same-element
+    // same-phase listeners fire in attachment order and Claude's mounts
+    // before our MutationObserver catches up to attach ours -- capture
+    // phase doesn't help when both listeners are on the SAME element.
+    //
+    // Fix: stop trying to read the DOM at Enter time entirely. Track the
+    // text continuously via 'input' events (which fire on every keystroke,
+    // well before Enter), so by the time Enter fires we already have a
+    // reliable snapshot captured independently of whatever Claude's own
+    // handler does to the box afterward.
+    var lastKnownText = '';
+    promptEl.addEventListener('input', function() {
+      lastKnownText = config.getPromptText(promptEl).trim();
+    });
+
     promptEl.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
-        var text = config.getPromptText(promptEl).trim();
-        // 2026-07-09: diagnostic log -- on Claude, zero captures were ever
-        // reaching the service worker despite active chatting, with none of
-        // the capturePrompt() logs firing either. That means execution was
-        // dying somewhere between this Enter keydown and capturePrompt()
-        // being called -- most likely right here, if getPromptText() reads
-        // an empty/too-short string (e.g. Claude's element structure or
-        // event timing differs from ChatGPT/Gemini in a way that makes
-        // .innerText read empty at this exact moment).
-        console.log('[Mnemox] Enter pressed on ' + CURRENT_SITE + '. Text length: ' + text.length + ', preview: ' + JSON.stringify(text.slice(0, 60)));
+        var liveText = config.getPromptText(promptEl).trim();
+        // Prefer a fresh live read when it looks valid (covers ChatGPT/
+        // Gemini/Copilot, where this always worked); fall back to the last
+        // 'input'-tracked snapshot when the live read comes back empty/too
+        // short, which is exactly what happens on Claude.
+        var text = liveText.length >= 3 ? liveText : lastKnownText;
+        console.log('[Mnemox] Enter pressed on ' + CURRENT_SITE + '. liveText length: ' + liveText.length +
+          ', lastKnownText length: ' + lastKnownText.length + ', using: ' + (liveText.length >= 3 ? 'live' : 'lastKnown') +
+          ', preview: ' + JSON.stringify(text.slice(0, 60)));
         if (!text || text.length < 3) {
-          console.log('[Mnemox] Enter handler bailed: text too short (len=' + text.length + ')');
-          // 2026-07-09: dump the actual element structure when this
-          // happens, so if the getPromptText() fallback chain still isn't
-          // enough for whatever Claude's current DOM looks like, the next
-          // console log shows it directly instead of requiring another
-          // guess-and-test round trip.
-          console.log('[Mnemox] promptEl at time of failed read:', promptEl,
-            'outerHTML (truncated):', (promptEl.outerHTML || '').slice(0, 400));
+          console.log('[Mnemox] Enter handler bailed: text too short (len=' + text.length + ') even after lastKnownText fallback');
           return;
         }
 

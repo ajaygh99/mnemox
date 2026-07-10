@@ -560,7 +560,72 @@ def test_no_submit_button_dumps_candidates():
     assert 'Candidate buttons on page' in fn_match.group(0)
 
 
-def test_empty_capture_dumps_element_html():
+# 2026-07-09 note: the old "dump promptEl.outerHTML on empty-text capture
+# failure" diagnostic (added in v0.1.13) was removed in v0.1.15 -- the
+# input-tracking fix below (lastKnownText) resolves the empty-read case via
+# fallback instead of just logging it, so that dump's bail-out path is no
+# longer reachable in the same way and the diagnostic was retired along with
+# the dead code it was inspecting.
+
+
+# -- Diagnostics: verify promptEl is actually the focused element -------------
+# 2026-07-09: v0.1.13's broadened Claude selectors did NOT fix the empty-text
+# symptom -- identical "Text length: 0" on every Enter press, before and
+# after. That rules out simple selector-wording drift and points at a
+# structural issue: our capture-phase keydown listener fires for any Enter
+# press that passes through promptEl on its way down to the real event
+# target, which includes promptEl being an ANCESTOR of the real input, not
+# necessarily the input itself. Added a definitive runtime check comparing
+# promptEl against document.activeElement at the moment of the Enter press,
+# plus an unconditional dump of the wired element's identity at wire-time.
+
+def test_wire_time_dumps_matched_element():
     fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
     assert fn_match
-    assert 'outerHTML (truncated)' in fn_match.group(0)
+    assert 'Matched element:' in fn_match.group(0)
+
+
+# -- Real fix: continuous input-event text tracking (v0.1.15) -----------------
+# 2026-07-09: the activeElement diagnostic above CONFIRMED the true root
+# cause -- promptEl===document.activeElement was false and activeElement was
+# <body> at the exact moment our Enter keydown listener ran, with text
+# already empty, even though promptEl was independently confirmed to be the
+# correct Claude input element. This is a same-element listener ORDERING
+# race: Claude's own React onKeyDown handler is attached to the same
+# contenteditable node and clears/blurs it synchronously before our listener
+# runs, since same-element same-phase listeners fire in attachment order.
+# Capture phase doesn't help when both listeners share one element.
+#
+# Fix: stop reading the DOM at Enter time. Track text continuously via an
+# 'input' event listener (fires on every keystroke, well before Enter), and
+# fall back to that snapshot whenever the live read at Enter time comes back
+# empty/too short -- which is exactly what happens on Claude.
+
+def test_input_listener_tracks_last_known_text():
+    fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
+    assert fn_match
+    fn_body = fn_match.group(0)
+    assert 'lastKnownText' in fn_body
+    assert re.search(r"addEventListener\(\s*['\"]input['\"]", fn_body)
+
+
+def test_enter_handler_falls_back_to_last_known_text():
+    fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
+    assert fn_match
+    fn_body = fn_match.group(0)
+    # Keydown handler must prefer a fresh live read but fall back to the
+    # input-tracked snapshot instead of bailing out immediately.
+    keydown_match = re.search(r"addEventListener\(\s*['\"]keydown['\"][\s\S]*?\n      \}", fn_body)
+    assert keydown_match
+    keydown_body = keydown_match.group(0)
+    assert 'liveText' in keydown_body
+    assert 'lastKnownText' in keydown_body
+
+
+def test_enter_handler_no_longer_bails_on_first_empty_read():
+    # The old behavior returned immediately on an empty live read with no
+    # fallback -- that's the exact bug that broke Claude capture. Assert the
+    # bail-out message now reflects that a fallback was already attempted.
+    fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
+    assert fn_match
+    assert 'even after lastKnownText fallback' in fn_match.group(0)
