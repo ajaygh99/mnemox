@@ -29,9 +29,31 @@
       setPromptText: function(el, text) { setContentEditable(el, text); },
     },
     claude: {
-      promptSelector: '.ProseMirror[contenteditable="true"], div[contenteditable="true"][data-placeholder]',
-      submitSelector: 'button[aria-label="Send Message"], button[type="submit"]',
-      getPromptText: function(el) { return el.innerText || ''; },
+      // 2026-07-09 fix: the old selectors stopped matching Claude's current
+      // UI entirely -- confirmed live via console: "No submit button
+      // matched" AND every capture read an empty string. CSS attribute
+      // selectors are case-sensitive by default; 'aria-label="Send Message"'
+      // (capital M) most likely no longer matches Claude's actual label
+      // ("Send message", lowercase, or something else entirely by now).
+      // Broadened to case-insensitive (the trailing "i" flag) plus several
+      // more resilient fallback patterns (data-testid, partial match on
+      // "send") so a future minor label wording change doesn't silently
+      // break capture again the same way.
+      promptSelector: '.ProseMirror[contenteditable="true"], div[contenteditable="true"][data-placeholder], div[contenteditable="true"][aria-label*="message" i], div[contenteditable="true"][aria-label*="reply" i]',
+      submitSelector: 'button[aria-label="Send Message" i], button[aria-label*="send" i], button[data-testid="send-button"], button[data-testid*="send" i], button[type="submit"]',
+      getPromptText: function(el) {
+        // Fallback chain: .innerText can read empty on some contenteditable
+        // implementations (e.g. if the element is display:none at read
+        // time, or text lives in a nested node .innerText doesn't walk the
+        // way we expect). Try progressively less-precise reads before
+        // giving up.
+        var text = el.innerText || el.textContent || '';
+        if (!text.trim()) {
+          var p = el.querySelector('p, span, div');
+          if (p) text = p.innerText || p.textContent || '';
+        }
+        return text;
+      },
       setPromptText: function(el, text) { setContentEditable(el, text); },
     },
     gemini: {
@@ -61,7 +83,11 @@
   function loadSettings() {
     return new Promise(function(resolve) {
       chrome.runtime.sendMessage({ type: 'MNEMOX_GET_SETTINGS' }, function(r) {
+        if (chrome.runtime.lastError) {
+          console.warn('[Mnemox] loadSettings failed: ' + chrome.runtime.lastError.message);
+        }
         if (r && r.success) settings = Object.assign({}, settings, r.settings);
+        console.log('[Mnemox] Settings loaded on ' + CURRENT_SITE + ':', settings);
         resolve();
       });
     });
@@ -170,7 +196,16 @@
 
   // ── Capture prompt ───────────────────────────────────────────────────────
   function capturePrompt(text) {
-    if (!settings.captureEnabled) return;
+    // 2026-07-09: diagnostic logging added at every early-return point.
+    // Capture kept silently failing on Claude with no visible signal why --
+    // these logs turn the next test into an actual diagnosis instead of
+    // another guess. Safe to remove once the real failure point is found
+    // and fixed; until then this is cheap and only runs on Enter/submit.
+    if (!settings.captureEnabled) {
+      console.log('[Mnemox] Capture skipped: captureEnabled is false', settings);
+      return;
+    }
+    var original = text;
     text = text.trim();
     // Strip injected context before saving — save only the user's original prompt
     var markerIdx = text.indexOf('[Mnemox Context');
@@ -180,18 +215,33 @@
       var endIdx = text.indexOf(endMarker);
       if (endIdx !== -1) text = text.slice(endIdx + endMarker.length).trim();
     }
-    if (!text || text.length < 4) return;
-    if (text === lastCaptured) return;
+    if (!text || text.length < 4) {
+      console.log('[Mnemox] Capture skipped: text too short after trim/strip.',
+        'original=' + JSON.stringify(original), 'stripped=' + JSON.stringify(text));
+      return;
+    }
+    if (text === lastCaptured) {
+      console.log('[Mnemox] Capture skipped: duplicate of last capture.', text.slice(0, 60));
+      return;
+    }
     lastCaptured = text;
 
     var stored = text.length > 1000 ? text.slice(0, 1000) + '...' : text;
+    console.log('[Mnemox] Sending capture to service worker:', stored.slice(0, 60));
     chrome.runtime.sendMessage({
       type: 'MNEMOX_MEMORY_CAPTURED',
       payload: { content: stored, source: CURRENT_SITE },
     }, function(response) {
+      if (chrome.runtime.lastError) {
+        console.error('[Mnemox] Capture sendMessage failed: ' + chrome.runtime.lastError.message);
+        return;
+      }
       if (response && response.success) {
+        console.log('[Mnemox] Capture confirmed saved, id=' + response.id);
         var preview = text.slice(0, 45) + (text.length > 45 ? '...' : '');
         showToast('Memory saved', '"' + preview + '"');
+      } else {
+        console.error('[Mnemox] Capture rejected by service worker:', response);
       }
     });
   }
@@ -222,7 +272,26 @@
     promptEl.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
         var text = config.getPromptText(promptEl).trim();
-        if (!text || text.length < 3) return;
+        // 2026-07-09: diagnostic log -- on Claude, zero captures were ever
+        // reaching the service worker despite active chatting, with none of
+        // the capturePrompt() logs firing either. That means execution was
+        // dying somewhere between this Enter keydown and capturePrompt()
+        // being called -- most likely right here, if getPromptText() reads
+        // an empty/too-short string (e.g. Claude's element structure or
+        // event timing differs from ChatGPT/Gemini in a way that makes
+        // .innerText read empty at this exact moment).
+        console.log('[Mnemox] Enter pressed on ' + CURRENT_SITE + '. Text length: ' + text.length + ', preview: ' + JSON.stringify(text.slice(0, 60)));
+        if (!text || text.length < 3) {
+          console.log('[Mnemox] Enter handler bailed: text too short (len=' + text.length + ')');
+          // 2026-07-09: dump the actual element structure when this
+          // happens, so if the getPromptText() fallback chain still isn't
+          // enough for whatever Claude's current DOM looks like, the next
+          // console log shows it directly instead of requiring another
+          // guess-and-test round trip.
+          console.log('[Mnemox] promptEl at time of failed read:', promptEl,
+            'outerHTML (truncated):', (promptEl.outerHTML || '').slice(0, 400));
+          return;
+        }
 
         // Step 1: capture original prompt.
         // 2026-07-09 fix: this used to re-read config.getPromptText(promptEl)
@@ -268,11 +337,14 @@
     }, true);  // capture phase — runs before AI tool's own listeners
 
     // Also wire submit button (for mouse clicks)
+    var submitBtnsFound = 0;
     config.submitSelector.split(', ').forEach(function(sel) {
       var btn = document.querySelector(sel.trim());
+      if (btn) submitBtnsFound++;
       if (btn && !btn._mnemoxAttached) {
         btn._mnemoxAttached = true;
         btn.addEventListener('click', function() {
+          console.log('[Mnemox] Submit button clicked on ' + CURRENT_SITE + '. Own synthetic click: ' + mnemoxOwnClick);
           // Skip -- the keydown handler above already captured this message
           // (with a reliable pre-mutation snapshot) before triggering this
           // synthetic click as part of the injection flow.
@@ -282,6 +354,18 @@
         });
       }
     });
+    if (submitBtnsFound === 0) {
+      console.warn('[Mnemox] No submit button matched on ' + CURRENT_SITE + ' for selector: ' + config.submitSelector);
+      // Dump every button on the page with an aria-label or data-testid, so
+      // the real send-button selector is visible directly in the console
+      // instead of requiring another guess.
+      var candidates = Array.prototype.slice.call(document.querySelectorAll('button'))
+        .filter(function(b) { return b.getAttribute('aria-label') || b.getAttribute('data-testid'); })
+        .map(function(b) {
+          return { ariaLabel: b.getAttribute('aria-label'), testId: b.getAttribute('data-testid'), text: (b.innerText || '').slice(0, 20) };
+        });
+      console.log('[Mnemox] Candidate buttons on page (has aria-label or data-testid):', candidates);
+    }
   }
 
   // ── MutationObserver: handles SPA re-renders ─────────────────────────────

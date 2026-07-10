@@ -460,3 +460,107 @@ def test_oninstalled_preserves_memories_key():
     assert "memories: []" in fn_body
     assert re.search(r"chrome\.storage\.local\.set\(\s*\{\s*\n?\s*captureEnabled", fn_body) is None, \
         "must not unconditionally overwrite storage with defaults anymore"
+
+
+# -- Diagnostics: log the Enter keydown itself, not just capturePrompt() ------
+# 2026-07-09: after the onInstalled fix, the service worker console showed
+# ChatGPT and Gemini captures persisting correctly (0 -> 1 -> 2, no resets),
+# but ZERO Claude captures ever arrived despite active chatting -- and none
+# of the existing capturePrompt() diagnostic logs fired either. That means
+# execution was dying between the Enter keydown and the capturePrompt() call,
+# most likely at the pre-existing 'if (!text || text.length < 3) return'
+# early-return, which had no logging at all. Added logging right at Enter
+# keydown (before that check) and on submit-button clicks, so the exact
+# failure point becomes visible on the next test.
+
+def test_keydown_logs_on_every_enter_press():
+    fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
+    assert fn_match
+    fn_body = fn_match.group(0)
+    assert "console.log('[Mnemox] Enter pressed on '" in fn_body
+
+
+def test_keydown_logs_when_bailing_on_short_text():
+    fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
+    assert fn_match
+    assert 'Enter handler bailed: text too short' in fn_match.group(0)
+
+
+def test_submit_button_click_is_logged():
+    fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
+    assert fn_match
+    assert 'Submit button clicked on' in fn_match.group(0)
+
+
+def test_warns_when_no_submit_button_matched():
+    fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
+    assert fn_match
+    assert 'No submit button matched on' in fn_match.group(0)
+
+
+# -- Regression: MNEMOX_VERSION must not be a second, unsynced version -------
+# 2026-07-09: user noticed the service worker console showed "Mnemox v0.7.0"
+# while the popup/dashboard footers correctly showed the real manifest
+# version (0.1.11 at the time). MNEMOX_VERSION was a separately hardcoded
+# constant nobody kept in sync -- a second, confusing version number on top
+# of the earlier extension-ID mixup. Now reads the real manifest version.
+
+def test_mnemox_version_reads_from_manifest_not_hardcoded():
+    body = sw()
+    match = re.search(r"const\s+MNEMOX_VERSION\s*=\s*(.+);", body)
+    assert match, "MNEMOX_VERSION constant not found"
+    value = match.group(1).strip()
+    assert value == "chrome.runtime.getManifest().version", \
+        "MNEMOX_VERSION must read the real manifest version, not a separate hardcoded string"
+
+
+# -- Regression: Claude selectors must be resilient, not exact-case-only -----
+# 2026-07-09 manual test (with the diagnostic logging above): confirmed both
+# failures directly in the console --
+#   "[Mnemox] Enter pressed on claude. Text length: 0"
+#   "[Mnemox] No submit button matched on claude for selector:
+#    button[aria-label=\"Send Message\"], button[type=\"submit\"]"
+# CSS attribute selectors are case-sensitive by default -- Claude's actual
+# current aria-label almost certainly no longer matches the hardcoded
+# "Send Message" (capital M) exactly. Broadened to case-insensitive
+# matching (the "i" flag) plus additional fallback patterns, and added a
+# getPromptText() fallback chain (textContent, then a nested child) in case
+# .innerText alone reads empty on Claude's current DOM structure.
+
+def test_claude_submit_selector_is_case_insensitive():
+    body = content_js()
+    claude_match = re.search(r"claude:\s*\{[\s\S]*?\n    \},", body)
+    assert claude_match, "claude site config not found"
+    cfg = claude_match.group(0)
+    assert 'submitSelector:' in cfg
+    # case-insensitive attribute selector flag
+    assert ' i]' in cfg or '" i,' in cfg or '"i"' in cfg or 'i\'' in cfg or re.search(r'"\s*i\s*\]', cfg), \
+        "submitSelector should use case-insensitive ('i' flag) attribute matching"
+
+
+def test_claude_submit_selector_has_fallback_patterns():
+    body = content_js()
+    claude_match = re.search(r"claude:\s*\{[\s\S]*?\n    \},", body)
+    assert claude_match
+    cfg = claude_match.group(0)
+    assert 'data-testid' in cfg, "should fall back to data-testid, not just aria-label"
+
+
+def test_claude_get_prompt_text_has_fallback_chain():
+    body = content_js()
+    claude_match = re.search(r"claude:\s*\{[\s\S]*?\n    \},", body)
+    assert claude_match
+    cfg = claude_match.group(0)
+    assert 'textContent' in cfg, "getPromptText should fall back beyond just innerText"
+
+
+def test_no_submit_button_dumps_candidates():
+    fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
+    assert fn_match
+    assert 'Candidate buttons on page' in fn_match.group(0)
+
+
+def test_empty_capture_dumps_element_html():
+    fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
+    assert fn_match
+    assert 'outerHTML (truncated)' in fn_match.group(0)

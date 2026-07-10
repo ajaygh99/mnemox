@@ -1,7 +1,14 @@
 // service_worker.js — Mnemox Background Service Worker
 // Step 7: + Supabase Auth (JWT), Bearer token support, auth state management
 
-const MNEMOX_VERSION = '0.7.0';
+// 2026-07-09 fix: this used to be a separately hardcoded string ('0.7.0')
+// that never matched manifest.json's real version (0.1.11 at time of
+// writing) -- purely an internal debug marker nobody kept in sync, and a
+// second source of "why do I see two different version numbers" confusion
+// on top of the extension-ID mixup earlier in this project. Now just reads
+// the real manifest version, so there's exactly one version number anyone
+// ever needs to look at.
+const MNEMOX_VERSION = chrome.runtime.getManifest().version;
 
 // Supabase project config — the anon/publishable key is safe to ship in
 // client code (it's rate-limited and access is enforced by RLS policies).
