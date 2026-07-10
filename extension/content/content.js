@@ -212,13 +212,30 @@
     promptEl._mnemoxAttached = true;
     console.log('[Mnemox] Prompt wired on ' + CURRENT_SITE);
 
+    // Set right before we programmatically click the submit button after
+    // injection, so the submit-button click listener below (which also
+    // fires on THIS synthetic click, since it's a real DOM click event)
+    // knows capture was already handled for this message and skips its own
+    // redundant, racier re-capture attempt.
+    var mnemoxOwnClick = false;
+
     promptEl.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
         var text = config.getPromptText(promptEl).trim();
         if (!text || text.length < 3) return;
 
-        // Step 1: capture original prompt
-        setTimeout(function() { capturePrompt(config.getPromptText(promptEl)); }, 80);
+        // Step 1: capture original prompt.
+        // 2026-07-09 fix: this used to re-read config.getPromptText(promptEl)
+        // live, 80ms later, instead of using the 'text' snapshot already
+        // captured synchronously above. On Claude specifically, the prompt
+        // box (a ProseMirror contenteditable) can get cleared or mutated
+        // well before that 80ms timeout fires -- by our own injection logic
+        // rewriting the box, or by Claude's own send handling -- so the
+        // delayed re-read intermittently captured an empty string and
+        // capturePrompt() silently aborted (it returns early when
+        // text.length < 4). Using the already-known-good 'text' snapshot
+        // makes capture immune to any DOM mutation that happens afterward.
+        setTimeout(function() { capturePrompt(text); }, 80);
 
         // Step 2: inject memories BEFORE submit
         if (settings.injectEnabled) {
@@ -234,7 +251,12 @@
               var submitSelectors = config.submitSelector.split(', ');
               for (var i = 0; i < submitSelectors.length; i++) {
                 var btn = document.querySelector(submitSelectors[i].trim());
-                if (btn) { btn.click(); break; }
+                if (btn) {
+                  mnemoxOwnClick = true;
+                  btn.click();
+                  mnemoxOwnClick = false;
+                  break;
+                }
               }
             }, 120);
           });
@@ -251,6 +273,10 @@
       if (btn && !btn._mnemoxAttached) {
         btn._mnemoxAttached = true;
         btn.addEventListener('click', function() {
+          // Skip -- the keydown handler above already captured this message
+          // (with a reliable pre-mutation snapshot) before triggering this
+          // synthetic click as part of the injection flow.
+          if (mnemoxOwnClick) return;
           var text = config.getPromptText(promptEl).trim();
           setTimeout(function() { capturePrompt(text); }, 80);
         });

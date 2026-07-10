@@ -293,3 +293,48 @@ def test_dashboard_js_wires_events_programmatically():
         js = f.read()
     assert 'addEventListener' in js
     assert 'function wireUpEvents' in js
+
+
+# -- Regression: Enter-key capture must use a pre-mutation text snapshot ------
+# 2026-07-09 manual test: sent a message on claude.ai with the default
+# settings (captureEnabled + injectEnabled both on) and it never showed up
+# in the dashboard, despite chatgpt/gemini captures working. Root cause:
+# the Enter-key handler's capture step re-read the prompt box's LIVE DOM 80ms
+# later (config.getPromptText(promptEl)) instead of using the 'text' snapshot
+# already captured synchronously the moment Enter was pressed. Claude's
+# ProseMirror editor can clear/mutate its content well before that 80ms
+# timeout fires (from our own injection rewriting the box, or from Claude's
+# own send handling), so the delayed re-read intermittently read an empty
+# string and capturePrompt() silently discarded it (content.js aborts on
+# text.length < 4). The sibling non-inject branch already used the correct
+# snapshot -- only the inject branch (captureEnabled+injectEnabled together,
+# which is the DEFAULT config) had the bug, so it hit every user by default.
+
+def content_js():
+    with open(os.path.join(EXT, 'content', 'content.js')) as f:
+        return f.read()
+
+
+def test_keydown_capture_uses_text_snapshot_not_live_dom_read():
+    body = content_js()
+    fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", body)
+    assert fn_match, "attachPromptListeners() not found"
+    fn_body = fn_match.group(0)
+    # The bug pattern: re-reading the DOM inside the delayed capture call.
+    assert 'capturePrompt(config.getPromptText(promptEl))' not in fn_body, \
+        "capture must not re-read the live DOM after a delay -- use the " \
+        "'text' snapshot captured synchronously at keydown time instead"
+    # Step 1 (unconditional, before the inject/no-inject branch) must use
+    # the snapshot.
+    step1 = fn_body[:fn_body.find('if (settings.injectEnabled)')]
+    assert 'capturePrompt(text)' in step1
+
+
+def test_submit_button_click_skips_own_synthetic_click():
+    body = content_js()
+    fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", body)
+    assert fn_match
+    fn_body = fn_match.group(0)
+    assert 'mnemoxOwnClick' in fn_body, \
+        "programmatic post-injection click should be flagged so the " \
+        "submit-button listener doesn't redundantly re-capture"
