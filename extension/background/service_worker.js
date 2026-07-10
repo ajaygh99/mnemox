@@ -26,9 +26,21 @@ const AI_HOSTS = [
 ];
 
 // ── Install / Startup ────────────────────────────────────────────────────────
-chrome.runtime.onInstalled.addListener(({ reason }) => {
-  if (reason === 'install') {
-    chrome.storage.local.set({
+chrome.runtime.onInstalled.addListener(async ({ reason }) => {
+  // 2026-07-09 fix: this used to unconditionally OVERWRITE chrome.storage.local
+  // with empty defaults (memories: [], memoryCount: 0, auth cleared) whenever
+  // reason === 'install'. That destroyed every captured memory -- this is
+  // the actual root cause behind every "0 memories" reset seen throughout
+  // testing, on every AI site, not a per-site capture bug. Manually removing
+  // + re-loading an unpacked extension in chrome://extensions triggers a
+  // genuine 'install' event even though it's "the same" extension to a
+  // developer -- and even a plain reload can sometimes fire 'install'
+  // rather than 'update' for unpacked extensions. Either way, storage must
+  // never be blindly reset. Now only fills in keys that don't already
+  // exist, so any real data already in storage survives.
+  if (reason === 'install' || reason === 'update') {
+    const existing = await chrome.storage.local.get(null);
+    const defaults = {
       captureEnabled: true,
       injectEnabled: true,
       memoryCount: 0,
@@ -40,8 +52,15 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
       authToken: null,
       authUser: null,
       authPlan: 'free',
-    });
-    console.log(`[Mnemox v${MNEMOX_VERSION}] Installed`);
+    };
+    const patch = {};
+    for (const key in defaults) {
+      if (!(key in existing)) patch[key] = defaults[key];
+    }
+    if (Object.keys(patch).length) {
+      await chrome.storage.local.set(patch);
+    }
+    console.log(`[Mnemox v${MNEMOX_VERSION}] ${reason}. Preserved ${Object.keys(existing).length} existing keys, filled in ${Object.keys(patch).length} missing defaults. Memories on disk: ${(existing.memories || patch.memories || []).length}`);
   }
 });
 
@@ -231,6 +250,11 @@ async function getAuthHeaders() {
 // ── Memory Handlers ───────────────────────────────────────────────────────────
 
 async function handleMemoryCaptured(payload, sender, sendResponse) {
+  // 2026-07-09: diagnostic logging -- see matching note in content.js.
+  // These print in the SERVICE WORKER's own console (chrome://extensions ->
+  // Mnemox -> "service worker" link -> Inspect), not the page console, so
+  // they're easy to miss if you're only looking at the page's DevTools.
+  console.log('[Mnemox SW] handleMemoryCaptured received:', payload && payload.source, payload && (payload.content || '').slice(0, 60));
   try {
     const result = await chrome.storage.local.get(['memories', 'memoryCount', 'backendUrl']);
     const memories = result.memories || [];
@@ -248,6 +272,7 @@ async function handleMemoryCaptured(payload, sender, sendResponse) {
     if (memories.length > 500) memories.shift();
 
     await chrome.storage.local.set({ memories, memoryCount: count + 1 });
+    console.log('[Mnemox SW] Storage write confirmed. New total memories:', memories.length);
     updateBadge(memories.length);
 
     if (result.backendUrl) {

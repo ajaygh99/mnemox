@@ -371,3 +371,92 @@ def test_popup_init_uses_render_memory_stats():
     fn_match = re.search(r"async function init\(\)[\s\S]*?\n}", body)
     assert fn_match, "init() not found"
     assert 'renderMemoryStats(' in fn_match.group(0)
+
+
+# -- Diagnostics: capture path must be observable end to end -------------------
+# 2026-07-09: after fixing the known Claude capture race (v0.1.8) and the
+# stale-popup issue (v0.1.9), a fresh manual test still showed 0 memories
+# captured on Claude, with no visible signal anywhere as to why. Rather than
+# guess again, added console logging at every point capturePrompt() can
+# silently bail (captureEnabled false, text too short after trim/strip,
+# duplicate of lastCaptured, sendMessage failure) plus confirmation logging
+# in the service worker's handleMemoryCaptured() (received + storage write
+# confirmed). These are cheap (only run on Enter/submit) and turn the next
+# manual test into an actual diagnosis.
+
+def test_capture_logs_when_capture_disabled():
+    fn_match = re.search(r"function capturePrompt[\s\S]*?\n  \}", content_js())
+    assert fn_match
+    assert "console.log('[Mnemox] Capture skipped: captureEnabled is false'" in fn_match.group(0)
+
+
+def test_capture_logs_when_text_too_short():
+    fn_match = re.search(r"function capturePrompt[\s\S]*?\n  \}", content_js())
+    assert fn_match
+    assert 'text too short after trim/strip' in fn_match.group(0)
+
+
+def test_capture_logs_before_sending_to_service_worker():
+    fn_match = re.search(r"function capturePrompt[\s\S]*?\n  \}", content_js())
+    assert fn_match
+    assert 'Sending capture to service worker' in fn_match.group(0)
+
+
+def test_capture_logs_sendmessage_failure():
+    fn_match = re.search(r"function capturePrompt[\s\S]*?\n  \}", content_js())
+    assert fn_match
+    assert 'chrome.runtime.lastError' in fn_match.group(0)
+
+
+def test_service_worker_logs_receipt_and_storage_write():
+    body = sw()
+    fn_match = re.search(r"async function handleMemoryCaptured[\s\S]*?\n\}", body)
+    assert fn_match
+    fn_body = fn_match.group(0)
+    assert 'handleMemoryCaptured received' in fn_body
+    assert 'Storage write confirmed' in fn_body
+
+
+# -- Regression: onInstalled must never wipe existing data --------------------
+# 2026-07-09: the SERVICE WORKER console (chrome://extensions -> Mnemox ->
+# "service worker" -> Inspect) showed "[Mnemox v0.7.0] Installed" firing on
+# what the user believed was just a routine extension reload. That log line
+# only prints inside the reason === 'install' branch of onInstalled, which
+# unconditionally called chrome.storage.local.set() with empty defaults --
+# memories: [], memoryCount: 0, auth cleared. THIS was the real root cause
+# behind every "0 memories" reset seen throughout this whole debugging
+# session, on every AI site (ChatGPT, Gemini, Claude) -- not a per-site
+# capture bug at all. Fixed by only filling in keys that don't already
+# exist in storage, so a genuine 'install' firing (whether from Chrome
+# dev-mode reload quirks or an actual remove+reload) can no longer destroy
+# real data.
+
+def test_oninstalled_does_not_call_storage_set_unconditionally():
+    body = sw()
+    fn_match = re.search(r"chrome\.runtime\.onInstalled\.addListener\([\s\S]*?\n\}\);", body)
+    assert fn_match, "onInstalled listener not found"
+    fn_body = fn_match.group(0)
+    # The old destructive pattern: an unconditional .set({...defaults...})
+    # as the only thing gating on reason === 'install'.
+    assert 'chrome.storage.local.get(' in fn_body, \
+        "onInstalled must read existing storage before writing any defaults"
+
+
+def test_oninstalled_only_fills_missing_keys():
+    body = sw()
+    fn_match = re.search(r"chrome\.runtime\.onInstalled\.addListener\([\s\S]*?\n\}\);", body)
+    assert fn_match
+    fn_body = fn_match.group(0)
+    assert 'if (!(key in existing))' in fn_body
+
+
+def test_oninstalled_preserves_memories_key():
+    body = sw()
+    fn_match = re.search(r"chrome\.runtime\.onInstalled\.addListener\([\s\S]*?\n\}\);", body)
+    assert fn_match
+    fn_body = fn_match.group(0)
+    # memories must appear inside the defaults object (as a fallback for a
+    # TRULY fresh install), but never get force-written over existing data.
+    assert "memories: []" in fn_body
+    assert re.search(r"chrome\.storage\.local\.set\(\s*\{\s*\n?\s*captureEnabled", fn_body) is None, \
+        "must not unconditionally overwrite storage with defaults anymore"
