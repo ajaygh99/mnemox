@@ -58,7 +58,18 @@
     },
     gemini: {
       promptSelector: '.ql-editor[contenteditable="true"], rich-textarea .ql-editor',
-      submitSelector: 'button.send-button, button[aria-label="Send message"]',
+      // 2026-07-10 fix: the old "button.send-button, button[aria-label=
+      // \"Send message\"]" selector stopped matching anything on Gemini's
+      // current UI -- confirmed live via chrome://extensions Errors panel:
+      // "[Mnemox] No submit button matched on gemini for selector:
+      // button.send-button, button[aria-label=\"Send message\"]". Broadened
+      // with case-insensitive matching and more fallback patterns, same fix
+      // already applied to Claude. Also see dispatchSyntheticSubmit() below
+      // -- a general safety net for ALL sites so a stale selector here never
+      // strands an injected message unsent again (which is what was
+      // actually happening: e.preventDefault() paused the native submit,
+      // injection ran, then no button matched to resume it).
+      submitSelector: 'button.send-button, button[aria-label="Send message" i], button[aria-label*="send" i], button[data-test-id*="send" i], button[mattooltip*="send" i]',
       getPromptText: function(el) { return el.innerText || ''; },
       setPromptText: function(el, text) { setContentEditable(el, text); },
     },
@@ -308,7 +319,36 @@
       lastKnownText = config.getPromptText(promptEl).trim();
     });
 
+    // 2026-07-10 fix -- REAL DATA-LOSS BUG FOUND during live Gemini testing:
+    // "[Mnemox] No submit button matched on gemini for selector: ...". That
+    // warning alone looked cosmetic, but tracing the actual consequence
+    // showed it wasn't: when injectEnabled is true, our Enter listener calls
+    // e.preventDefault() to pause the native submit BEFORE it knows whether
+    // a submit button can be found again afterward. If config.submitSelector
+    // has gone stale (site markup changed, like Gemini's did), the resume
+    // step below finds nothing to click and the message is silently
+    // stranded in the box -- injected, but never actually sent.
+    //
+    // Fix: as a last resort when no selector matches, re-dispatch a REAL
+    // Enter keydown/keypress/keyup sequence at the prompt element so the
+    // site's OWN submit handler takes over, independent of whatever our
+    // selector list guesses. This makes every site resilient to future
+    // selector staleness, not just Gemini. Marked .mnemoxSynthetic so our
+    // own capture-phase listener below recognizes and ignores it instead of
+    // re-entering this same handler in a loop.
+    function dispatchSyntheticSubmit() {
+      ['keydown', 'keypress', 'keyup'].forEach(function(type) {
+        var evt = new KeyboardEvent(type, {
+          key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
+          bubbles: true, cancelable: true,
+        });
+        evt.mnemoxSynthetic = true;
+        promptEl.dispatchEvent(evt);
+      });
+    }
+
     promptEl.addEventListener('keydown', function(e) {
+      if (e.mnemoxSynthetic) return;  // our own synthetic-submit re-dispatch — don't re-enter
       if (e.key === 'Enter' && !e.shiftKey) {
         var liveText = config.getPromptText(promptEl).trim();
         // Prefer a fresh live read when it looks valid (covers ChatGPT/
@@ -349,14 +389,21 @@
             // Resume submit after injection (or skip if no memories)
             setTimeout(function() {
               var submitSelectors = config.submitSelector.split(', ');
+              var btnFound = false;
               for (var i = 0; i < submitSelectors.length; i++) {
                 var btn = document.querySelector(submitSelectors[i].trim());
                 if (btn) {
                   mnemoxOwnClick = true;
                   btn.click();
                   mnemoxOwnClick = false;
+                  btnFound = true;
                   break;
                 }
+              }
+              if (!btnFound) {
+                console.warn('[Mnemox] No submit button matched on ' + CURRENT_SITE +
+                  ' after injection -- falling back to a synthetic Enter so the message isn\'t stranded unsent.');
+                dispatchSyntheticSubmit();
               }
             }, 120);
           });

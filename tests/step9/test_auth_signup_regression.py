@@ -599,7 +599,9 @@ def test_wire_time_dumps_matched_element():
 # Fix: stop reading the DOM at Enter time. Track text continuously via an
 # 'input' event listener (fires on every keystroke, well before Enter), and
 # fall back to that snapshot whenever the live read at Enter time comes back
-# empty/too short -- which is exactly what happens on Claude.
+# empty/too short -- which is exactly what happens on Claude. Confirmed
+# working live: v0.1.15 test showed "using: lastKnown" in the console and the
+# Claude memory landed in the dashboard.
 
 def test_input_listener_tracks_last_known_text():
     fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
@@ -629,3 +631,84 @@ def test_enter_handler_no_longer_bails_on_first_empty_read():
     fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
     assert fn_match
     assert 'even after lastKnownText fallback' in fn_match.group(0)
+
+
+# -- v0.1.16: Gemini stale selector + cross-site synthetic-submit fallback ----
+# 2026-07-10: chrome://extensions Errors panel showed, live, during Gemini
+# testing: "[Mnemox] No submit button matched on gemini for selector:
+# button.send-button, button[aria-label=\"Send message\"]". Tracing the
+# actual consequence (not just the log) revealed a real data-loss bug: when
+# injectEnabled is true, the Enter handler calls e.preventDefault() BEFORE
+# knowing whether a submit button can be found again after injection. A
+# stale selector meant the resume step found nothing to click and the
+# message was stranded in the box, injected but never sent.
+
+def test_gemini_submit_selector_is_case_insensitive_with_fallbacks():
+    body = content_js()
+    gemini_match = re.search(r"gemini:\s*\{[\s\S]*?\n    \},", body)
+    assert gemini_match
+    cfg = gemini_match.group(0)
+    assert 'aria-label*="send" i' in cfg or 'aria-label*=\"send\" i' in cfg
+    assert 'data-test-id' in cfg
+
+
+def test_synthetic_submit_fallback_defined():
+    fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
+    assert fn_match
+    fn_body = fn_match.group(0)
+    assert 'function dispatchSyntheticSubmit' in fn_body
+    assert 'mnemoxSynthetic' in fn_body
+
+
+def test_synthetic_submit_dispatches_real_enter_sequence():
+    fn_match = re.search(r"function dispatchSyntheticSubmit[\s\S]*?\n    \}", content_js())
+    assert fn_match
+    body = fn_match.group(0)
+    assert "'keydown'" in body and "'keypress'" in body and "'keyup'" in body
+    assert "key: 'Enter'" in body
+
+
+def test_keydown_handler_ignores_own_synthetic_events():
+    # Without this guard, dispatchSyntheticSubmit() would re-trigger this
+    # same keydown listener and loop back into itself.
+    fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
+    assert fn_match
+    keydown_match = re.search(r"addEventListener\(\s*['\"]keydown['\"][\s\S]*?\n      \}", fn_match.group(0))
+    assert keydown_match
+    assert 'e.mnemoxSynthetic' in keydown_match.group(0)
+
+
+def test_resume_submit_falls_back_when_no_button_matched():
+    # The old resume-after-injection loop just ended silently if no
+    # selector matched -- the message stayed stuck in the box, never sent.
+    # Assert the fallback path is wired in.
+    fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
+    assert fn_match
+    fn_body = fn_match.group(0)
+    assert 'btnFound' in fn_body
+    assert 'dispatchSyntheticSubmit()' in fn_body
+
+
+# -- v0.1.16 follow-up: send-button attributes can disappear entirely --------
+# 2026-07-10 live test: the "Candidate buttons" dump on claude.ai showed 44
+# buttons with an aria-label or data-testid -- none of them a send button.
+# Claude's current send control has neither attribute at all (icon-only,
+# undiscoverable by selector). Confirmed this doesn't break functionality:
+# capture still fires from the Enter keydown snapshot (independent of
+# finding any button), and dispatchSyntheticSubmit() covers actually sending
+# when no button can be clicked. This test locks in that capture never
+# depends on a submit button being found at all.
+
+def test_capture_does_not_depend_on_submit_button_being_found():
+    fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
+    assert fn_match
+    fn_body = fn_match.group(0)
+    # The unconditional Step-1 capture call must appear before any submit
+    # button lookup, so a missing/stale selector can never block capture.
+    capture_idx = fn_body.find('setTimeout(function() { capturePrompt(text); }, 80);')
+    submit_lookup_idx = fn_body.find('config.submitSelector.split')
+    assert capture_idx != -1
+    assert submit_lookup_idx != -1
+    assert capture_idx < submit_lookup_idx, \
+        "capture must be scheduled before any submit-button lookup, so a " \
+        "stale/missing selector can never prevent a memory from being saved"
