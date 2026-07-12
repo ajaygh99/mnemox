@@ -134,11 +134,44 @@ def test_confirmation_screen_shows_users_email():
 # Manual test confirmed: sign up -> confirmation email delivered -> confirm
 # link -> sign in -> popup shows authenticated view -> "View Memories" opens
 # the dashboard. Lock in the wiring so it can't silently break.
+#
+# 2026-07-12 UPDATE: the forced redirect this test used to lock in ("if not
+# isLoggedIn, window.location.href = 'login.html', return") is itself what
+# got the next submission rejected -- Chrome Web Store flagged "Dashboard"
+# as not working/reproducible because email-confirmation sign-up isn't
+# something a reviewer can complete, so they never got past login.html to
+# see it. See tests/step10 for the full story and the replacement
+# assertions. This test now locks in the opposite invariant: signing in
+# must remain possible (login.html still reachable, isLoggedIn still read),
+# but it must be optional, not forced.
 
-def test_popup_redirects_unauthenticated_to_login():
+def test_popup_does_not_force_redirect_when_unauthenticated():
     body = popup_js()
+    fn_match = re.search(r"async function init\(\)[\s\S]*?\n}", body)
+    assert fn_match, "init() not found"
+    init_body = fn_match.group(0)
+    # init() legitimately contains the string 'login.html' now (the optional
+    # Sign in link's click handler lives inside init(), same as every other
+    # button it wires up) -- so the regression to guard against isn't that
+    # string's presence, it's whether init() BAILS OUT early based on auth
+    # state before rendering the rest of the popup. Check there's no return
+    # between reading auth state and loading settings/rendering the UI.
+    auth_idx = init_body.find('checkAuth()')
+    settings_idx = init_body.find('loadSettings()')
+    assert auth_idx != -1 and settings_idx != -1 and auth_idx < settings_idx
+    assert 'return' not in init_body[auth_idx:settings_idx], \
+        "popup.js's init() must not return early based on auth state -- " \
+        "Dashboard and the rest of the popup have to be reachable without " \
+        "an account"
+    assert 'isLoggedIn' in init_body
+
+
+def test_signin_remains_available_via_explicit_link():
+    # Signing in must still be possible -- just optional, wired to a link
+    # the user clicks on purpose, not an automatic redirect.
+    body = popup_js()
+    assert "getElementById('signin-link')" in body
     assert "window.location.href = 'login.html'" in body
-    assert 'isLoggedIn' in body
 
 
 def test_view_memories_button_exists_in_html():

@@ -114,3 +114,52 @@
 | 7 | 84 | Auth, billing, team |
 | 8 | 48 | E2E integration (real HTTP) |
 | **Total** | **303** | **All passing ✅** |
+
+## Step 10 — Chrome Web Store Rejection #2: Anonymous Mode (v0.1.17)
+
+### What happened
+The v0.1.16 submission was rejected: "Inaccurate Description - Non functional
+- Dashboard" -- the reviewer couldn't reproduce the Dashboard feature named
+in our own listing description.
+
+### Root cause
+`popup.js`'s `init()` unconditionally redirected to `login.html` whenever
+`authState.isLoggedIn` was false (this exact behavior was locked in by a
+tests/step9 regression guard after the *first* rejection, for a different
+reason -- sign-up itself was broken then). Sign-up requires Supabase email
+confirmation, which a reviewer cannot complete, so they got stuck on the
+login screen and never saw the popup's "View Memories" button, let alone
+the dashboard page it opens. The dashboard's own code was never the
+problem -- the CSP/inline-script bug from Step 6 was already fixed. It was
+simply unreachable behind a mandatory account wall.
+
+### What was built
+- **extension/popup/popup.js**: `init()` no longer returns early when
+  signed out. Popup always renders in a "local mode" -- plan badge shows
+  Free, user row shows "Local mode (not signed in)" with a Sign in link
+  instead of Sign out. Dashboard button, capture/inject toggles all wired
+  unconditionally. Sign out now re-renders the popup locally instead of
+  bouncing to `login.html`.
+- **extension/popup/popup.html**: added a `signin-link` control next to
+  the existing `signout-btn` in the user row.
+- **extension/popup/login.html + login.js**: added a "Continue without an
+  account" link that returns to `popup.html` without signing in.
+- **extension/manifest.json**: version bump to 0.1.17.
+- No backend or service-worker changes needed -- `handleMemoryCaptured()`
+  and `handleSearchMemories()` in `service_worker.js` already wrote to
+  `chrome.storage.local` first and fell back to local search without a
+  backend session; only the popup's UI gate was blocking access to them.
+
+### Tests
+- `tests/step9/test_auth_signup_regression.py`: rewrote the one assertion
+  that had locked in the forced-redirect behavior
+  (`test_popup_redirects_unauthenticated_to_login` ->
+  `test_popup_does_not_force_redirect_when_unauthenticated`), added
+  `test_signin_remains_available_via_explicit_link`.
+- `tests/step10/test_anonymous_mode.py`: 9 new tests locking in that the
+  popup never bails out early on auth state, the Dashboard/capture/search
+  paths are reachable and backend-optional, and sign-in stays available
+  as an opt-in link.
+- Full suite: 329 extension tests + 48 backend E2E tests, all passing.
+
+### Git tag: v0.1.17

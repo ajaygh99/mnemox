@@ -82,21 +82,29 @@ if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged)
 }
 
 // -- Init ----------------------------------------------------------------------
+// 2026-07-12 fix: this used to hard-redirect to login.html on every popup
+// open whenever authState.isLoggedIn was false. Chrome Web Store rejected
+// the build built on that flow -- not for the reason we expected (sign-up
+// itself; see tests/step9's regression story) but for "Dashboard" being
+// "not working or not reproducible" during review. Root cause: sign-up
+// requires email confirmation, which a reviewer can't complete, so they got
+// stuck on login.html and never reached the popup's "View Memories" button,
+// let alone the dashboard page it opens -- even though the dashboard itself
+// never touches the backend (it reads/writes chrome.storage.local
+// directly, same as capture/inject/search's local fallback in
+// service_worker.js). Only cloud sync, backend semantic search, and paid
+// plans actually need a session. So the popup now always renders in a
+// "local mode" when signed out; an account is offered via an explicit
+// Sign in link, never forced.
 async function init() {
-  // Step 7: check auth first
   const authState = await checkAuth();
-
-  if (!authState || !authState.isLoggedIn) {
-    // Redirect to login page
-    window.location.href = 'login.html';
-    return;
-  }
+  const isLoggedIn = !!(authState && authState.isLoggedIn);
 
   const settings = await loadSettings();
   const site = await detectActiveSite();
 
-  // Plan badge
-  const plan = authState.plan || 'free';
+  // Plan badge -- 'free' (local) when signed out, same tier as a free account.
+  const plan = isLoggedIn ? (authState.plan || 'free') : 'free';
   mnemoxCurrentPlan = plan;
   const planEl = document.getElementById('plan-badge');
   if (planEl) {
@@ -104,10 +112,18 @@ async function init() {
     planEl.className = 'plan-badge plan-' + plan;
   }
 
-  // User email
+  // User row: signed-in email + Sign out, or a Sign in link in local mode.
   const userEl = document.getElementById('user-email');
-  if (userEl && authState.user) {
-    userEl.textContent = authState.user.email;
+  const signoutBtn = document.getElementById('signout-btn');
+  const signinLink = document.getElementById('signin-link');
+  if (isLoggedIn) {
+    if (userEl && authState.user) userEl.textContent = authState.user.email;
+    if (signoutBtn) signoutBtn.style.display = '';
+    if (signinLink) signinLink.style.display = 'none';
+  } else {
+    if (userEl) userEl.textContent = 'Local mode (not signed in)';
+    if (signoutBtn) signoutBtn.style.display = 'none';
+    if (signinLink) signinLink.style.display = '';
   }
 
   // Memory count (kept live below via chrome.storage.onChanged, since a
@@ -162,10 +178,17 @@ async function init() {
     chrome.tabs.create({ url: 'https://mnemox.app/pricing' });
   });
 
-  // Sign out
+  // Sign in (optional -- only navigates to login.html on explicit request,
+  // never automatically; see the note above init()).
+  document.getElementById('signin-link')?.addEventListener('click', () => {
+    window.location.href = 'login.html';
+  });
+
+  // Sign out -- re-render this same popup in local mode instead of bouncing
+  // to login.html, since an account was never required to use it.
   document.getElementById('signout-btn')?.addEventListener('click', () => {
     chrome.runtime.sendMessage({ type: 'MNEMOX_AUTH_SIGNOUT' }, () => {
-      window.location.href = 'login.html';
+      init();
     });
   });
 }

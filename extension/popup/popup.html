@@ -32,6 +32,11 @@
       background: none; border: none; padding: 0;
     }
     .signout-link:hover { color: #f87171; }
+    .signin-link {
+      font-size: 11px; color: #a78bfa; cursor: pointer;
+      background: none; border: none; padding: 0; display: none;
+    }
+    .signin-link:hover { color: #c4b5fd; }
     .site-badge {
       display: inline-block; background: #1a1a2e;
       border: 1px solid #374151; border-radius: 6px;
@@ -93,6 +98,7 @@
   <div class="user-row">
     <span id="user-email" style="color:#6b7280"></span>
     <button class="signout-link" id="signout-btn">Sign out</button>
+    <button class="signin-link" id="signin-link">Sign in</button>
   </div>
 
   <div class="site-badge" id="site-badge">Detecting…</div>

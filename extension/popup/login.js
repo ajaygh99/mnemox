@@ -27,6 +27,13 @@ document.getElementById('goto-signin').addEventListener('click', function() {
   hideError();
 });
 
+// An account was never required to use Mnemox -- capture, inject, and the
+// dashboard all work against chrome.storage.local. This just returns to the
+// popup without signing in.
+document.getElementById('skip-login').addEventListener('click', function() {
+  window.location.href = 'popup.html';
+});
+
 // ── Sign In ──────────────────────────────────────────────────────────────────
 document.getElementById('signin-btn').addEventListener('click', function() {
   var email    = document.getElementById('signin-email').value.trim();
