@@ -175,6 +175,36 @@
     .privacy-content ul { padding-left: 1.5rem; margin: .5rem 0; }
     .privacy-content a { color: var(--purple-light); }
 
+    /* ── Extension (Prompt Coach) page ── */
+    #extension-page { display: none; }
+    #extension-page.active { display: block; }
+    .demo-compare {
+      display: flex; gap: 1rem; align-items: center; justify-content: center;
+      margin: 3rem auto 0; max-width: 740px; flex-wrap: wrap; position: relative; z-index: 1;
+    }
+    .demo-card {
+      flex: 1; min-width: 260px; background: var(--bg2);
+      border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem 1.75rem;
+      text-align: left;
+    }
+    .demo-card.demo-after { border-color: rgba(74,222,128,0.35); }
+    .demo-arrow { font-size: 1.5rem; color: var(--purple-light); flex-shrink: 0; }
+    .demo-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: .6rem; font-weight: 700; }
+    .demo-prompt { color: var(--text); font-size: .92rem; margin-bottom: 1rem; font-style: italic; line-height: 1.5; }
+    .demo-score-row { display: flex; align-items: center; gap: .75rem; }
+    .demo-grade { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1rem; color: #1a0a0a; }
+    .demo-grade.grade-f { background: #f87171; }
+    .demo-grade.grade-a { background: #4ade80; }
+    .demo-meta { font-size: .82rem; color: var(--muted); }
+    .demo-meta strong { color: var(--text); font-size: .9rem; }
+    .why-strip { text-align: center; max-width: 640px; margin: 2.5rem auto 0; color: var(--muted); font-size: 1rem; position: relative; z-index: 1; }
+    .mid-cta { text-align: center; margin-top: 2.5rem; }
+    .mid-cta a { color: var(--purple-light); font-weight: 600; text-decoration: none; font-size: .95rem; }
+    .mid-cta a:hover { text-decoration: underline; }
+    @media (max-width: 640px) {
+      .demo-arrow { transform: rotate(90deg); }
+    }
+
     @media (max-width: 640px) {
       .nav-links { display: none; }
       .footer-inner { flex-direction: column; }
@@ -194,6 +224,7 @@
     <li><a href="#features">Features</a></li>
     <li><a href="#pricing">Pricing</a></li>
     <li><a href="#faq">FAQ</a></li>
+    <li><a href="/extension" onclick="showExtension(); return false;">Prompt Coach</a></li>
   </ul>
   <a class="nav-cta" href="https://chromewebstore.google.com" target="_blank">Add to Chrome — Free</a>
 </nav>
@@ -520,6 +551,143 @@
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════════════════════
+     EXTENSION PAGE (Mnemox Prompt Coach)
+══════════════════════════════════════════════════════════ -->
+<div id="extension-page">
+
+<section class="hero" style="min-height: auto; padding: 8rem 1.5rem 4rem;">
+  <div class="badge">✦ Free Chrome Extension · No account needed</div>
+  <h1>Write better prompts.<br/><span>Instantly.</span></h1>
+  <p>Mnemox Prompt Coach scores every prompt as you type — on ChatGPT, Claude, Gemini, and more — and shows you exactly what to fix. Nothing leaves your browser.</p>
+  <div class="hero-btns">
+    <a class="btn-primary" href="https://chromewebstore.google.com/detail/ebgobnpgohhdffehpdljbpbmbjobklcm" target="_blank">Add to Chrome — Free</a>
+    <a class="btn-secondary" href="#ext-how">See how it works</a>
+  </div>
+  <div class="ai-logos">
+    <div class="ai-logo">ChatGPT</div>
+    <div class="ai-logo">Claude</div>
+    <div class="ai-logo">Gemini</div>
+    <div class="ai-logo">Copilot</div>
+    <div class="ai-logo">Perplexity</div>
+    <div class="ai-logo">Grok</div>
+  </div>
+  <div class="demo-compare">
+    <div class="demo-card">
+      <div class="demo-label">Before</div>
+      <div class="demo-prompt">"write me something about dogs"</div>
+      <div class="demo-score-row">
+        <div class="demo-grade grade-f">F</div>
+        <div class="demo-meta"><strong>29 / 100</strong> — vague, no goal, no format</div>
+      </div>
+    </div>
+    <div class="demo-arrow">→</div>
+    <div class="demo-card demo-after">
+      <div class="demo-label">After Mnemox's fix</div>
+      <div class="demo-prompt">"Write a 200-word intro to dog breeds for first-time owners, covering size, temperament, and grooming needs."</div>
+      <div class="demo-score-row">
+        <div class="demo-grade grade-a">A</div>
+        <div class="demo-meta"><strong>91 / 100</strong> — clear goal, format, and scope</div>
+      </div>
+    </div>
+  </div>
+  <p class="why-strip">Most people type the same weak prompts and wonder why AI gives generic answers. Mnemox shows you exactly what's weak — and rewrites it for you, in one click.</p>
+</section>
+
+<section id="ext-how" style="background: var(--bg2);">
+  <div class="container">
+    <div class="section-tag">How it works</div>
+    <h2 class="section-title">Works in under a minute</h2>
+    <p class="section-sub">No setup. No configuration. No account.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Install</h3>
+        <p>Add the free extension from the Chrome Web Store. No sign-up needed.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Type normally</h3>
+        <p>Open ChatGPT, Claude, Gemini, or any AI chat. A small score badge appears as you type.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Fix and send</h3>
+        <p>Click the badge to see what's weak and get a rewritten prompt in one click.</p>
+      </div>
+    </div>
+    <div class="mid-cta">
+      <a href="https://chromewebstore.google.com/detail/ebgobnpgohhdffehpdljbpbmbjobklcm" target="_blank">Add to Chrome — Free →</a>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-tag">What you get</div>
+    <h2 class="section-title">Everything happens right where you type</h2>
+    <p class="section-sub">Built for anyone who wants sharper answers from AI — not another account to manage.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🟢</div>
+        <h3>Live score badge</h3>
+        <p>An A–F grade and a 0–100 score, right next to where you're typing.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💡</div>
+        <h3>Coaching panel</h3>
+        <p>See exactly which part of your prompt is weak, with a one-click fix.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔢</div>
+        <h3>Token counter</h3>
+        <p>Know how long your prompt is before you send it.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔍</div>
+        <h3>Response trust check</h3>
+        <p>A quick read on whether the AI's answer sounds hedgy, incomplete, or inconsistent.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="background: var(--bg2);">
+  <div class="container">
+    <div class="section-tag">Privacy</div>
+    <h2 class="section-title">Nothing leaves your browser by default</h2>
+    <div class="privacy-cards" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+      <div class="privacy-card">
+        <div class="icon">🚫</div>
+        <h3>No account required</h3>
+        <p>Install and use it immediately. No sign-up, no login.</p>
+      </div>
+      <div class="privacy-card">
+        <div class="icon">🔒</div>
+        <h3>Scoring runs locally</h3>
+        <p>All prompt and response scoring happens in your browser.</p>
+      </div>
+      <div class="privacy-card">
+        <div class="icon">👁️</div>
+        <h3>Opt-in only</h3>
+        <p>Prompt history and memory comparison are off by default — you turn them on yourself, in the popup, if you want them.</p>
+      </div>
+    </div>
+    <p style="margin-top: 2rem;"><a href="https://github.com/ajaygh99/mnemox-extension#privacy-policy" target="_blank" style="color: var(--purple-light)">Read the full privacy policy →</a></p>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div class="container">
+    <h2>Ready to stop guessing why your prompts fall flat?</h2>
+    <p>Free forever. No account. Works in under a minute.</p>
+    <a class="btn-primary" href="https://chromewebstore.google.com/detail/ebgobnpgohhdffehpdljbpbmbjobklcm" target="_blank">Add to Chrome — Free</a>
+    <p style="margin-top: 1.5rem; font-size: .9rem;"><a href="/" onclick="showMain(); return false;" style="color: var(--muted)">Looking for cross-AI memory instead? → Mnemox Memory</a></p>
+  </div>
+</section>
+
+</div><!-- /#extension-page -->
+
 <!-- ── Footer ── -->
 <footer>
   <div class="footer-inner">
@@ -535,6 +703,7 @@
         <li><a href="#how">How it works</a></li>
         <li><a href="#features">Features</a></li>
         <li><a href="#pricing">Pricing</a></li>
+        <li><a href="/extension" onclick="showExtension(); return false;">Prompt Coach</a></li>
       </ul>
     </div>
     <div class="footer-links">
@@ -593,29 +762,42 @@
     item.classList.toggle('open');
   }
 
-  // Privacy page routing
+  // Page routing (home / privacy / extension)
   function showPrivacy() {
     document.getElementById('main-content').classList.add('hidden');
     document.getElementById('privacy-page').classList.add('active');
+    document.getElementById('extension-page').classList.remove('active');
     window.scrollTo(0, 0);
     history.pushState({}, '', '/privacy');
+  }
+
+  function showExtension() {
+    document.getElementById('main-content').classList.add('hidden');
+    document.getElementById('privacy-page').classList.remove('active');
+    document.getElementById('extension-page').classList.add('active');
+    window.scrollTo(0, 0);
+    history.pushState({}, '', '/extension');
   }
 
   function showMain() {
     document.getElementById('main-content').classList.remove('hidden');
     document.getElementById('privacy-page').classList.remove('active');
+    document.getElementById('extension-page').classList.remove('active');
     window.scrollTo(0, 0);
     history.pushState({}, '', '/');
   }
 
-  // Handle direct /privacy URL
+  // Handle direct /privacy or /extension URLs
   if (window.location.pathname === '/privacy') {
     showPrivacy();
+  } else if (window.location.pathname === '/extension') {
+    showExtension();
   }
 
   // Handle browser back/forward
   window.addEventListener('popstate', () => {
     if (window.location.pathname === '/privacy') showPrivacy();
+    else if (window.location.pathname === '/extension') showExtension();
     else showMain();
   });
 </script>
