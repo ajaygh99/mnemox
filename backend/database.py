@@ -5,6 +5,7 @@ from supabase import create_client, Client
 from config import get_settings
 from models import MemoryCreate, Memory
 from datetime import datetime, timezone
+import asyncio
 import uuid
 import logging
 
@@ -30,7 +31,9 @@ async def health_check_db() -> bool:
     """Ping Supabase to verify connection"""
     try:
         client = get_supabase()
-        client.table("memories").select("id").limit(1).execute()
+        await asyncio.to_thread(
+            client.table("memories").select("id").limit(1).execute
+        )
         return True
     except Exception as e:
         logger.warning(f"Supabase health check failed: {e}")
@@ -52,7 +55,9 @@ async def save_memory(payload: MemoryCreate) -> dict:
         "injected": False,
     }
 
-    response = client.table("memories").insert(record).execute()
+    response = await asyncio.to_thread(
+        client.table("memories").insert(record).execute
+    )
 
     if not response.data:
         raise RuntimeError("Failed to insert memory into Supabase")
@@ -79,7 +84,7 @@ async def get_memories(
         query = query.eq("source", source)
 
     query = query.order("created_at", desc=True).range(offset, offset + limit - 1)
-    response = query.execute()
+    response = await asyncio.to_thread(query.execute)
 
     return response.data or []
 
@@ -87,7 +92,9 @@ async def get_memories(
 async def delete_memory(memory_id: str) -> bool:
     """Delete a memory by ID"""
     client = get_supabase()
-    response = client.table("memories").delete().eq("id", memory_id).execute()
+    response = await asyncio.to_thread(
+        client.table("memories").delete().eq("id", memory_id).execute
+    )
     return bool(response.data)
 
 
@@ -97,7 +104,7 @@ async def get_memory_count(user_id: str | None = None) -> int:
     query = client.table("memories").select("id", count="exact")
     if user_id:
         query = query.eq("user_id", user_id)
-    response = query.execute()
+    response = await asyncio.to_thread(query.execute)
     return response.count or 0
 
 
@@ -110,7 +117,7 @@ async def get_traces(mnemox_uuid: str | None = None, limit: int = 50) -> list[di
     if mnemox_uuid:
         query = query.eq("mnemox_uuid", mnemox_uuid)
     query = query.order("created_at", desc=True).limit(limit)
-    response = query.execute()
+    response = await asyncio.to_thread(query.execute)
     return response.data or []
 
 
@@ -133,7 +140,9 @@ async def save_trace(payload) -> dict:
         "created_at":    datetime.now(timezone.utc).isoformat(),
     }
 
-    response = client.table("traces").insert(record).execute()
+    response = await asyncio.to_thread(
+        client.table("traces").insert(record).execute
+    )
 
     if not response.data:
         raise RuntimeError("Failed to insert trace into Supabase")

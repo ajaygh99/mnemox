@@ -42,17 +42,35 @@ def test_has_settings_page():
     assert 'page-settings' in read()
 
 def test_stats_cards_present():
+    # 2026-07-18: the four static stat cards (stat-total/stat-chatgpt/...)
+    # were replaced by clickable filter chips -- see
+    # test_source_chips_cover_six_platforms_and_stay_separate below for the
+    # full regression coverage of that change.
     code = read()
-    assert 'stat-total' in code
-    assert 'stat-chatgpt' in code
-    assert 'stat-claude' in code
+    assert 'chip-count-all' in code
+    assert 'chip-count-chatgpt' in code
+    assert 'chip-count-claude' in code
 
 def test_memory_list_render():
     assert 'renderMemories' in read()
 
 def test_filter_by_source():
     assert 'filterMemories' in read()
-    assert 'mem-filter' in read()
+    assert 'source-chips' in read()
+    assert 'activeSource' in read()
+
+def test_source_chips_cover_six_platforms_and_stay_separate():
+    # 2026-07-18: the stat cards used to be non-clickable and merged Gemini
+    # + Copilot into one combined count with no way to filter to just one of
+    # them. Fixed by replacing the stats row with clickable chips (one per
+    # source, always kept separate) and adding Perplexity + Grok as
+    # additional filterable categories.
+    code = read()
+    for source in ('chatgpt', 'claude', 'gemini', 'copilot', 'perplexity', 'grok'):
+        assert 'data-source="' + source + '"' in code
+        assert 'chip-count-' + source in code
+    assert 'Gemini + Copilot' not in code
+    assert 'handleChipClick' in code
 
 def test_search_input_present():
     assert 'mem-search' in read()

@@ -36,20 +36,22 @@
     .page-title { font-size: 22px; font-weight: 700; color: #f3f4f6; }
     .page-sub { font-size: 13px; color: #6b7280; margin-top: 4px; }
 
-    /* Stats row */
-    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
-    .stat-card { background: #13132a; border: 1px solid #1e1e3a; border-radius: 10px; padding: 14px 16px; }
-    .stat-num { font-size: 28px; font-weight: 800; color: #a78bfa; }
-    .stat-label { font-size: 11px; color: #6b7280; margin-top: 2px; }
-    .stat-icon { font-size: 20px; float: right; margin-top: -2px; }
+    /* Source filter chips */
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    .chip { display: flex; align-items: center; gap: 7px; background: #13132a; border: 1px solid #1e1e3a;
+            color: #9ca3af; padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: all 0.15s; }
+    .chip:hover { border-color: #7c3aed; color: #e5e7eb; }
+    .chip.active { background: #2dd4bf; border-color: #2dd4bf; color: #062b26; }
+    .chip-count { background: rgba(255,255,255,0.1); color: inherit; padding: 1px 7px;
+                  border-radius: 10px; font-size: 11px; font-weight: 700; }
+    .chip.active .chip-count { background: rgba(6,43,38,0.18); }
 
     /* Search bar */
     .search-row { display: flex; gap: 10px; margin-bottom: 18px; align-items: center; }
     .search-input { flex: 1; background: #13132a; border: 1px solid #1e1e3a;
                     color: #e5e7eb; padding: 9px 14px; border-radius: 8px; font-size: 13px; outline: none; }
     .search-input:focus { border-color: #7c3aed; }
-    .filter-select { background: #13132a; border: 1px solid #1e1e3a; color: #9ca3af;
-                     padding: 9px 12px; border-radius: 8px; font-size: 12px; outline: none; cursor: pointer; }
 
     /* Memory list */
     .memory-list { display: flex; flex-direction: column; gap: 8px; }
@@ -59,10 +61,12 @@
     .memory-card:hover { border-color: #2d1b69; }
     .memory-source { flex-shrink: 0; }
     .source-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
-    .source-chatgpt  { background: #064e3b; color: #6ee7b7; }
-    .source-claude   { background: #1e1b4b; color: #a5b4fc; }
-    .source-gemini   { background: #1e3a5f; color: #93c5fd; }
-    .source-copilot  { background: #1f2937; color: #d1d5db; }
+    .source-chatgpt    { background: #064e3b; color: #6ee7b7; }
+    .source-claude     { background: #1e1b4b; color: #a5b4fc; }
+    .source-gemini     { background: #1e3a5f; color: #93c5fd; }
+    .source-copilot    { background: #1f2937; color: #d1d5db; }
+    .source-perplexity { background: #134e4a; color: #5eead4; }
+    .source-grok       { background: #27272a; color: #e4e4e7; }
     .memory-body { flex: 1; min-width: 0; }
     .memory-text { font-size: 13px; color: #d1d5db; line-height: 1.5;
                    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -146,38 +150,18 @@
         <div class="page-sub">Every prompt you've sent, across all AI tools</div>
       </div>
 
-      <div class="stats-row">
-        <div class="stat-card">
-          <div class="stat-icon">🧠</div>
-          <div class="stat-num" id="stat-total">0</div>
-          <div class="stat-label">Total memories</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">🤖</div>
-          <div class="stat-num" id="stat-chatgpt">0</div>
-          <div class="stat-label">ChatGPT</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">🧬</div>
-          <div class="stat-num" id="stat-claude">0</div>
-          <div class="stat-label">Claude</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">✨</div>
-          <div class="stat-num" id="stat-other">0</div>
-          <div class="stat-label">Gemini + Copilot</div>
-        </div>
+      <div class="chip-row" id="source-chips">
+        <button class="chip active" data-source="">All <span class="chip-count" id="chip-count-all">0</span></button>
+        <button class="chip" data-source="chatgpt">ChatGPT <span class="chip-count" id="chip-count-chatgpt">0</span></button>
+        <button class="chip" data-source="claude">Claude <span class="chip-count" id="chip-count-claude">0</span></button>
+        <button class="chip" data-source="gemini">Gemini <span class="chip-count" id="chip-count-gemini">0</span></button>
+        <button class="chip" data-source="copilot">Copilot <span class="chip-count" id="chip-count-copilot">0</span></button>
+        <button class="chip" data-source="perplexity">Perplexity <span class="chip-count" id="chip-count-perplexity">0</span></button>
+        <button class="chip" data-source="grok">Grok <span class="chip-count" id="chip-count-grok">0</span></button>
       </div>
 
       <div class="search-row">
         <input class="search-input" id="mem-search" placeholder="Filter memories..." />
-        <select class="filter-select" id="mem-filter">
-          <option value="">All sources</option>
-          <option value="chatgpt">ChatGPT</option>
-          <option value="claude">Claude</option>
-          <option value="gemini">Gemini</option>
-          <option value="copilot">Copilot</option>
-        </select>
       </div>
 
       <div class="memory-list" id="memory-list">

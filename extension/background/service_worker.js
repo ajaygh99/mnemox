@@ -297,6 +297,8 @@ async function handleMemoryCaptured(payload, sender, sendResponse) {
 }
 
 async function handleSearchMemories(payload, sendResponse) {
+  const REMOTE_SEARCH_BUDGET_MS = 250;
+  const threshold = payload.score_threshold || 0.65;
   try {
     const { backendUrl } = await chrome.storage.local.get('backendUrl');
     const headers = await getAuthHeaders();
@@ -304,19 +306,22 @@ async function handleSearchMemories(payload, sendResponse) {
     // Need at least auth headers to call backend
     if (!backendUrl || (!headers['Authorization'] && !headers['X-API-Key'])) {
       const { memories = [] } = await chrome.storage.local.get('memories');
-      const results = localKeywordSearch(memories, payload.query, payload.limit || 5);
+      const results = localKeywordSearch(memories, payload.query, payload.limit || 5, threshold);
       return sendResponse({ success: true, results, source: 'local' });
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REMOTE_SEARCH_BUDGET_MS);
     const response = await fetch(`${backendUrl}/memories/search`, {
       method: 'POST',
       headers,
+      signal: controller.signal,
       body: JSON.stringify({
         query: payload.query,
         limit: payload.limit || 5,
-        score_threshold: payload.score_threshold || 0.65,
+        score_threshold: threshold,
       }),
-    });
+    }).finally(() => clearTimeout(timeoutId));
 
     if (!response.ok) throw new Error(`Backend error: ${response.status}`);
     const data = await response.json();
@@ -326,7 +331,7 @@ async function handleSearchMemories(payload, sendResponse) {
     console.warn('[Mnemox SW] Search error:', err.message);
     try {
       const { memories = [] } = await chrome.storage.local.get('memories');
-      const results = localKeywordSearch(memories, payload.query, payload.limit || 5);
+      const results = localKeywordSearch(memories, payload.query, payload.limit || 5, threshold);
       sendResponse({ success: true, results, source: 'local_fallback' });
     } catch (e) {
       sendResponse({ success: false, error: err.message, results: [] });
@@ -364,10 +369,40 @@ async function saveToBackend(memory, backendUrl, headers) {
   return response.json();
 }
 
-// ── Local keyword fallback ────────────────────────────────────────────────────
-function localKeywordSearch(memories, query, limit) {
+// Common function words stripped before scoring so a lone shared word (e.g.
+// "message", "type", "fix" -- exactly the words that show up in almost any
+// prompt) can't by itself count as a "relevant" match. Without this, generic
+// stored memories matched nearly every subsequent prompt regardless of the
+// score_threshold the caller asked for (see bug below).
+const STOPWORDS = new Set([
+  'the', 'and', 'for', 'are', 'but', 'not', 'you', 'your', 'this', 'that',
+  'with', 'have', 'has', 'had', 'was', 'were', 'been', 'being', 'from',
+  'can', 'could', 'would', 'should', 'will', 'just', 'also', 'about',
+  'what', 'when', 'where', 'which', 'who', 'why', 'how', 'all', 'any',
+  'some', 'each', 'more', 'most', 'other', 'into', 'out', 'off', 'over',
+  'again', 'then', 'once', 'here', 'there', 'now', 'always',
+  'going', 'along', 'same', 'like', 'get', 'got', 'make', 'made',
+  'need', 'want', 'know', 'think', 'see', 'look', 'use', 'used', 'using',
+]);
+
+// 2026-07-15 fix: this used to filter only `score > 0`, ignoring the
+// score_threshold the caller (content.js, default 0.65) explicitly asked
+// for -- the backend path honored it, this local fallback silently didn't.
+// In local mode (no auth token/API key configured -- the default state for
+// anyone not signed in), EVERY search went through this function, so any
+// prompt sharing so much as one 3+ letter word with a stored memory got
+// treated as "relevant" and auto-injected. Root-caused via live testing:
+// stored memories were generic text (bug reports about the extension
+// itself, full of words like "type", "message", "always") that matched
+// nearly every subsequent prompt. Now: (1) strips common stopwords before
+// scoring so a single generic shared word can't carry a match, (2) actually
+// enforces score >= threshold instead of score > 0.
+function localKeywordSearch(memories, query, limit, threshold) {
   if (!query || !memories.length) return [];
-  const queryWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  threshold = threshold || 0.65;
+  const queryWords = query.toLowerCase().split(/\s+/)
+    .filter(w => w.length > 2 && !STOPWORDS.has(w));
+  if (!queryWords.length) return [];
   return memories
     .map(m => {
       const text = m.content.toLowerCase();
@@ -375,7 +410,7 @@ function localKeywordSearch(memories, query, limit) {
       return { memory_id: m.id, score, source: m.source,
                content_preview: m.content.slice(0, 200), created_at: m.capturedAt };
     })
-    .filter(r => r.score > 0)
+    .filter(r => r.score >= threshold)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 }

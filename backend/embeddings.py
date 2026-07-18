@@ -6,6 +6,7 @@ from openai import AsyncOpenAI
 from config import get_settings
 import hashlib
 import logging
+from collections import OrderedDict
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,22 @@ EMBEDDING_DIMENSIONS = 1536
 
 # In-memory cache: avoid re-embedding identical text
 # Key: sha256(text), Value: list[float]
-_embedding_cache: dict[str, list[float]] = {}
+EMBEDDING_CACHE_MAX_SIZE = 512
+_embedding_cache: OrderedDict[str, list[float]] = OrderedDict()
+
+
+def _cache_get(key: str) -> list[float] | None:
+    vector = _embedding_cache.get(key)
+    if vector is not None:
+        _embedding_cache.move_to_end(key)
+    return vector
+
+
+def _cache_set(key: str, vector: list[float]) -> None:
+    _embedding_cache[key] = vector
+    _embedding_cache.move_to_end(key)
+    while len(_embedding_cache) > EMBEDDING_CACHE_MAX_SIZE:
+        _embedding_cache.popitem(last=False)
 
 
 def get_openai_client() -> AsyncOpenAI:
@@ -41,9 +57,10 @@ async def embed_text(text: str) -> list[float]:
     """
     key = _cache_key(text)
 
-    if key in _embedding_cache:
+    cached = _cache_get(key)
+    if cached is not None:
         logger.debug(f"Embedding cache hit for key {key[:8]}...")
-        return _embedding_cache[key]
+        return cached
 
     client = get_openai_client()
     response = await client.embeddings.create(
@@ -53,7 +70,7 @@ async def embed_text(text: str) -> list[float]:
     )
 
     vector = response.data[0].embedding
-    _embedding_cache[key] = vector
+    _cache_set(key, vector)
 
     logger.info(f"Embedding generated: {len(vector)} dims, text length {len(text)}")
     return vector
@@ -80,6 +97,6 @@ async def embed_batch(texts: list[str]) -> list[list[float]]:
             encoding_format="float",
         )
         for i, embedding_data in zip(uncached_indices, response.data):
-            _embedding_cache[keys[i]] = embedding_data.embedding
+            _cache_set(keys[i], embedding_data.embedding)
 
     return [_embedding_cache[k] for k in keys]

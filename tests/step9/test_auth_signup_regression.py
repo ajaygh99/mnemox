@@ -435,10 +435,12 @@ def test_capture_logs_before_sending_to_service_worker():
     assert 'Sending capture to service worker' in fn_match.group(0)
 
 
-def test_capture_logs_sendmessage_failure():
+def test_capture_handles_sendmessage_failure_through_safe_wrapper():
     fn_match = re.search(r"function capturePrompt[\s\S]*?\n  \}", content_js())
     assert fn_match
-    assert 'chrome.runtime.lastError' in fn_match.group(0)
+    assert 'safeSendMessage' in fn_match.group(0)
+    assert 'if (error)' in fn_match.group(0)
+    assert 'lastCaptured' in fn_match.group(0)
 
 
 def test_service_worker_logs_receipt_and_storage_write():
@@ -520,15 +522,16 @@ def test_keydown_logs_when_bailing_on_short_text():
 
 
 def test_submit_button_click_is_logged():
-    fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
+    fn_match = re.search(r"function handleSubmitClick[\s\S]*?\n  \}", content_js())
     assert fn_match
     assert 'Submit button clicked on' in fn_match.group(0)
 
 
-def test_warns_when_no_submit_button_matched():
+def test_submit_fallback_is_debug_not_extension_warning():
     fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
     assert fn_match
     assert 'No submit button matched on' in fn_match.group(0)
+    assert "console.warn('[Mnemox] No submit button matched" not in fn_match.group(0)
 
 
 # -- Regression: MNEMOX_VERSION must not be a second, unsynced version -------
@@ -587,10 +590,11 @@ def test_claude_get_prompt_text_has_fallback_chain():
     assert 'textContent' in cfg, "getPromptText should fall back beyond just innerText"
 
 
-def test_no_submit_button_dumps_candidates():
-    fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
-    assert fn_match
-    assert 'Candidate buttons on page' in fn_match.group(0)
+def test_dynamic_submit_buttons_use_event_delegation_without_candidate_dump():
+    body = content_js()
+    assert "document.addEventListener('click', handleSubmitClick, true)" in body
+    assert "target.closest(config.submitSelector)" in body
+    assert 'Candidate buttons on page' not in body
 
 
 # 2026-07-09 note: the old "dump promptEl.outerHTML on empty-text capture

@@ -13,7 +13,19 @@
 
 // State
 var allMemories = [];
+var activeSource = ''; // '' = All. One of chatgpt/claude/gemini/copilot/perplexity/grok.
 var settings = { captureEnabled: true, injectEnabled: true, backendUrl: '', apiKey: '' };
+var filterTimer = null;
+
+// Every source the dashboard knows how to count/filter/badge. Keep in sync
+// with the chip buttons in index.html (#source-chips) and the source-*
+// badge classes in the stylesheet.
+var KNOWN_SOURCES = ['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity', 'grok'];
+
+function scheduleFilterMemories() {
+  clearTimeout(filterTimer);
+  filterTimer = setTimeout(filterMemories, 100);
+}
 
 // Navigation
 function showPage(name, btn) {
@@ -56,26 +68,41 @@ function renderAll() {
   renderSettings();
 }
 
-// Stats
+// Stats -- also drives the counts shown inside each filter chip.
 function renderStats() {
-  var counts = { chatgpt: 0, claude: 0, gemini: 0, copilot: 0 };
+  var counts = {};
+  KNOWN_SOURCES.forEach(function(s) { counts[s] = 0; });
   allMemories.forEach(function(m) { if (counts[m.source] !== undefined) counts[m.source]++; });
-  document.getElementById('stat-total').textContent   = allMemories.length;
-  document.getElementById('stat-chatgpt').textContent = counts.chatgpt;
-  document.getElementById('stat-claude').textContent  = counts.claude;
-  document.getElementById('stat-other').textContent   = counts.gemini + counts.copilot;
+
+  var totalEl = document.getElementById('chip-count-all');
+  if (totalEl) totalEl.textContent = allMemories.length;
+
+  KNOWN_SOURCES.forEach(function(s) {
+    var el = document.getElementById('chip-count-' + s);
+    if (el) el.textContent = counts[s];
+  });
 }
 
-// Memory list
+// Memory list -- filters by the active chip (activeSource) AND the search box.
 function filterMemories() {
-  var query  = document.getElementById('mem-search').value.toLowerCase();
-  var source = document.getElementById('mem-filter').value;
+  var query = document.getElementById('mem-search').value.toLowerCase();
   var filtered = allMemories.filter(function(m) {
-    var matchSource = !source || m.source === source;
-    var matchText   = !query  || m.content.toLowerCase().includes(query);
+    var matchSource = !activeSource || m.source === activeSource;
+    var matchText   = !query || m.content.toLowerCase().includes(query);
     return matchSource && matchText;
   });
   renderMemories(filtered);
+}
+
+// Chip click -- exactly one chip is active at a time (event delegation, same
+// pattern as handleListClick below, since chips aren't static onclick attrs).
+function handleChipClick(e) {
+  var chip = e.target.closest('.chip');
+  if (!chip) return;
+  activeSource = chip.getAttribute('data-source') || '';
+  document.querySelectorAll('#source-chips .chip').forEach(function(c) { c.classList.remove('active'); });
+  chip.classList.add('active');
+  filterMemories();
 }
 
 function renderMemories(list) {
@@ -245,8 +272,8 @@ function wireUpEvents() {
   document.getElementById('nav-search')?.addEventListener('click', function(e) { showPage('search', e.currentTarget); });
   document.getElementById('nav-settings')?.addEventListener('click', function(e) { showPage('settings', e.currentTarget); });
 
-  document.getElementById('mem-search')?.addEventListener('input', filterMemories);
-  document.getElementById('mem-filter')?.addEventListener('change', filterMemories);
+  document.getElementById('mem-search')?.addEventListener('input', scheduleFilterMemories);
+  document.getElementById('source-chips')?.addEventListener('click', handleChipClick);
 
   document.getElementById('sem-search-btn')?.addEventListener('click', semanticSearch);
   document.getElementById('save-backend-btn')?.addEventListener('click', saveBackendSettings);

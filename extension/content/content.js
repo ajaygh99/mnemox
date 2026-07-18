@@ -19,7 +19,14 @@
   var settings = { captureEnabled: true, injectEnabled: true };
   var lastCaptured = '';
   var observer = null;
+  var observerTimer = null;
   var lastInjectedContext = '';  // track what we injected to avoid double-inject
+  var mnemoxOwnClick = false;
+  // Prompt submission must never depend indefinitely on extension/backend
+  // availability. This is the total time allowed for memory lookup.
+  var INJECTION_BUDGET_MS = 350;
+  var POST_INJECTION_SETTLE_MS = 20;
+  var extensionContextInvalidated = false;
 
   var SITE_CONFIG = {
     chatgpt: {
@@ -90,13 +97,49 @@
 
   var config = SITE_CONFIG[CURRENT_SITE];
 
+  function notifyContextInvalidated() {
+    if (extensionContextInvalidated) return;
+    extensionContextInvalidated = true;
+    console.info('[Mnemox] Extension was reloaded. Refresh this AI tab to reconnect capture and injection.');
+    setTimeout(function() {
+      if (!document.body) return;
+      injectToastStyles();
+      showToast('Mnemox updated', 'Refresh this tab to reconnect memory capture');
+    }, 0);
+  }
+
+  // chrome.runtime.sendMessage can throw synchronously after an unpacked
+  // extension is reloaded. Contain that lifecycle event so it never becomes
+  // an uncaught extension error, and give the user an actionable notice.
+  function safeSendMessage(message, callback) {
+    if (extensionContextInvalidated) {
+      if (callback) callback(null, new Error('Extension context invalidated'));
+      return;
+    }
+    try {
+      chrome.runtime.sendMessage(message, function(response) {
+        var runtimeError = chrome.runtime.lastError;
+        if (runtimeError) {
+          if (/context invalidated/i.test(runtimeError.message || '')) {
+            notifyContextInvalidated();
+          }
+          if (callback) callback(null, runtimeError);
+          return;
+        }
+        if (callback) callback(response, null);
+      });
+    } catch (error) {
+      if (/context invalidated/i.test(error.message || '')) {
+        notifyContextInvalidated();
+      }
+      if (callback) callback(null, error);
+    }
+  }
+
   // ── Settings ────────────────────────────────────────────────────────────────
   function loadSettings() {
     return new Promise(function(resolve) {
-      chrome.runtime.sendMessage({ type: 'MNEMOX_GET_SETTINGS' }, function(r) {
-        if (chrome.runtime.lastError) {
-          console.warn('[Mnemox] loadSettings failed: ' + chrome.runtime.lastError.message);
-        }
+      safeSendMessage({ type: 'MNEMOX_GET_SETTINGS' }, function(r) {
         if (r && r.success) settings = Object.assign({}, settings, r.settings);
         console.log('[Mnemox] Settings loaded on ' + CURRENT_SITE + ':', settings);
         resolve();
@@ -140,14 +183,33 @@
 
   // ── Search memories via service worker → backend ─────────────────────────
   function searchMemories(promptText, callback) {
-    chrome.runtime.sendMessage({
+    var finished = false;
+    function finish(memories) {
+      if (finished) return;
+      finished = true;
+      clearTimeout(budgetTimer);
+      callback(memories || []);
+    }
+
+    // A content-level watchdog protects submission even if the service
+    // worker is suspended, crashes, or never invokes the response callback.
+    var budgetTimer = setTimeout(function() {
+      console.debug('[Mnemox] Injection budget reached; sending prompt without waiting for remote memory.');
+      finish([]);
+    }, INJECTION_BUDGET_MS);
+
+    safeSendMessage({
       type: 'MNEMOX_SEARCH_MEMORIES',
       payload: { query: promptText, limit: 5, score_threshold: 0.65 },
-    }, function(response) {
+    }, function(response, error) {
+      if (error) {
+        finish([]);
+        return;
+      }
       if (response && response.success && response.results && response.results.length > 0) {
-        callback(response.results);
+        finish(response.results);
       } else {
-        callback([]);
+        finish([]);
       }
     });
   }
@@ -239,12 +301,12 @@
 
     var stored = text.length > 1000 ? text.slice(0, 1000) + '...' : text;
     console.log('[Mnemox] Sending capture to service worker:', stored.slice(0, 60));
-    chrome.runtime.sendMessage({
+    safeSendMessage({
       type: 'MNEMOX_MEMORY_CAPTURED',
       payload: { content: stored, source: CURRENT_SITE },
-    }, function(response) {
-      if (chrome.runtime.lastError) {
-        console.error('[Mnemox] Capture sendMessage failed: ' + chrome.runtime.lastError.message);
+    }, function(response, error) {
+      if (error) {
+        lastCaptured = '';
         return;
       }
       if (response && response.success) {
@@ -288,13 +350,6 @@
     } catch (err) {
       console.log('[Mnemox] Prompt wired on ' + CURRENT_SITE + ' (element logging failed: ' + err.message + ')');
     }
-
-    // Set right before we programmatically click the submit button after
-    // injection, so the submit-button click listener below (which also
-    // fires on THIS synthetic click, since it's a real DOM click event)
-    // knows capture was already handled for this message and skips its own
-    // redundant, racier re-capture attempt.
-    var mnemoxOwnClick = false;
 
     // 2026-07-09 fix -- ROOT CAUSE CONFIRMED via live console diagnostics:
     //   "promptEl===activeElement: false, activeElement tag: BODY"
@@ -401,11 +456,11 @@
                 }
               }
               if (!btnFound) {
-                console.warn('[Mnemox] No submit button matched on ' + CURRENT_SITE +
+                console.debug('[Mnemox] No submit button matched on ' + CURRENT_SITE +
                   ' after injection -- falling back to a synthetic Enter so the message isn\'t stranded unsent.');
                 dispatchSyntheticSubmit();
               }
-            }, 120);
+            }, POST_INJECTION_SETTLE_MS);
           });
         } else {
           // Injection disabled — just capture
@@ -414,36 +469,22 @@
       }
     }, true);  // capture phase — runs before AI tool's own listeners
 
-    // Also wire submit button (for mouse clicks)
-    var submitBtnsFound = 0;
-    config.submitSelector.split(', ').forEach(function(sel) {
-      var btn = document.querySelector(sel.trim());
-      if (btn) submitBtnsFound++;
-      if (btn && !btn._mnemoxAttached) {
-        btn._mnemoxAttached = true;
-        btn.addEventListener('click', function() {
-          console.log('[Mnemox] Submit button clicked on ' + CURRENT_SITE + '. Own synthetic click: ' + mnemoxOwnClick);
-          // Skip -- the keydown handler above already captured this message
-          // (with a reliable pre-mutation snapshot) before triggering this
-          // synthetic click as part of the injection flow.
-          if (mnemoxOwnClick) return;
-          var text = config.getPromptText(promptEl).trim();
-          setTimeout(function() { capturePrompt(text); }, 80);
-        });
-      }
-    });
-    if (submitBtnsFound === 0) {
-      console.warn('[Mnemox] No submit button matched on ' + CURRENT_SITE + ' for selector: ' + config.submitSelector);
-      // Dump every button on the page with an aria-label or data-testid, so
-      // the real send-button selector is visible directly in the console
-      // instead of requiring another guess.
-      var candidates = Array.prototype.slice.call(document.querySelectorAll('button'))
-        .filter(function(b) { return b.getAttribute('aria-label') || b.getAttribute('data-testid'); })
-        .map(function(b) {
-          return { ariaLabel: b.getAttribute('aria-label'), testId: b.getAttribute('data-testid'), text: (b.innerText || '').slice(0, 20) };
-        });
-      console.log('[Mnemox] Candidate buttons on page (has aria-label or data-testid):', candidates);
-    }
+  }
+
+  // One capture-phase delegated listener handles Send buttons that appear,
+  // disappear, or are replaced as the AI site's SPA state changes. This
+  // avoids treating the normal "button not rendered yet" state as an error.
+  function handleSubmitClick(e) {
+    if (mnemoxOwnClick) return;
+    var target = e.target;
+    if (!target || typeof target.closest !== 'function') return;
+    var btn = target.closest(config.submitSelector);
+    if (!btn) return;
+    var promptEl = findPromptEl();
+    if (!promptEl) return;
+    var text = config.getPromptText(promptEl).trim();
+    console.log('[Mnemox] Submit button clicked on ' + CURRENT_SITE + '.');
+    setTimeout(function() { capturePrompt(text); }, 80);
   }
 
   // ── MutationObserver: handles SPA re-renders ─────────────────────────────
@@ -452,9 +493,16 @@
     var el = findPromptEl();
     if (el) attachPromptListeners(el);
 
-    observer = new MutationObserver(function() {
-      var found = findPromptEl();
-      if (found) attachPromptListeners(found);
+    observer = new MutationObserver(function(mutations) {
+      // AI chat pages stream many DOM mutations per second. Coalesce bursts
+      // and only rescan when nodes were actually added.
+      var hasAddedNodes = mutations.some(function(m) { return m.addedNodes.length > 0; });
+      if (!hasAddedNodes || observerTimer) return;
+      observerTimer = setTimeout(function() {
+        observerTimer = null;
+        var found = findPromptEl();
+        if (found) attachPromptListeners(found);
+      }, 50);
     });
     observer.observe(document.body, { childList: true, subtree: true });
     console.log('[Mnemox] MutationObserver active on ' + CURRENT_SITE);
@@ -475,8 +523,9 @@
   function init() {
     loadSettings().then(function() {
       injectToastStyles();
+      document.addEventListener('click', handleSubmitClick, true);
       startObserver();
-      chrome.runtime.sendMessage({ type: 'MNEMOX_PING' }, function(r) {
+      safeSendMessage({ type: 'MNEMOX_PING' }, function(r) {
         console.log('[Mnemox] SW: ' + (r && r.status));
       });
     });

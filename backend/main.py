@@ -4,6 +4,7 @@
 from fastapi import FastAPI, HTTPException, Header, Query, Depends, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+import asyncio
 import logging
 
 from config import get_settings
@@ -71,8 +72,9 @@ app.add_middleware(
 @app.get("/health", response_model=HealthResponse, tags=["System"])
 async def health():
     """Health check — verifies Supabase + Qdrant connectivity"""
-    db_ok = await health_check_db()
-    vec_ok = await health_check_vector()
+    db_ok, vec_ok = await asyncio.gather(
+        health_check_db(), health_check_vector()
+    )
     return HealthResponse(
         status="ok" if (db_ok and vec_ok) else "degraded",
         version="0.7.0",
@@ -176,10 +178,13 @@ async def list_memories(
 ):
     """Retrieve memories scoped to the current user or team"""
     try:
-        memories = await get_memories(
-            user_id=user.memory_namespace, source=source, limit=limit, offset=offset
+        memories, total = await asyncio.gather(
+            get_memories(
+                user_id=user.memory_namespace, source=source,
+                limit=limit, offset=offset,
+            ),
+            get_memory_count(user_id=user.memory_namespace),
         )
-        total = await get_memory_count(user_id=user.memory_namespace)
         return MemoriesListResponse(
             success=True,
             memories=[Memory(**m) for m in memories],

@@ -2,6 +2,65 @@
 
 > One entry per step. Never skip writing this. It's your checkpoint record.
 
+## Extension Reload Lifecycle — v0.1.21
+**Date:** 2026-07-15
+**Status:** Complete
+
+### What changed
+- Added safe messaging for invalidated Chrome extension contexts.
+- Added an actionable in-page refresh notice after extension reloads.
+- Prevented failed delivery from locking capture deduplication state.
+- Removed expected latency-budget warnings from Chrome's Errors page.
+
+### Verification
+- 390 automated tests passing.
+- See `CONTEXT_FIX_v0.1.21.md` for diagnosis and lifecycle details.
+
+## Dynamic Send Button Handling — v0.1.20
+**Date:** 2026-07-15
+**Status:** Complete
+
+### What changed
+- Replaced startup Send-button probing with delegated click handling.
+- Removed false Claude/Gemini warnings caused by buttons not yet being rendered.
+- Preserved synthetic-submit fallback and prompt capture behavior.
+
+### Verification
+- 388 automated tests passing.
+- See `CONSOLE_FIX_v0.1.20.md` for details.
+
+## Prompt Latency Budget — v0.1.19
+**Date:** 2026-07-15
+**Status:** Complete
+
+### What changed
+- Reduced the remote semantic-search budget from 2.5 seconds to 250 ms.
+- Added an independent 350 ms content-script watchdog so prompt submission
+  continues even if the service worker never responds.
+- Reduced the post-injection editor settle delay from 120 ms to 20 ms.
+- Made memory-search completion idempotent so late callbacks are ignored.
+
+### Verification
+- 387 automated tests passing.
+- See `LATENCY_FIX_v0.1.19.md` for the latency comparison.
+
+## Performance Tuning — v0.1.18
+**Date:** 2026-07-15
+**Status:** Complete
+
+### What changed
+- Coalesced high-frequency content-script DOM mutations before locating the prompt input.
+- Added a 2.5-second semantic-search timeout with the existing local fallback.
+- Debounced dashboard text filtering.
+- Moved synchronous Supabase SDK work off FastAPI's event loop.
+- Parallelized independent health and memory-list database operations.
+- Bounded the in-memory embedding cache to 512 recently used vectors.
+- Added performance regression guards without changing APIs or storage formats.
+
+### Verification
+- 385 automated tests passing (377 existing + 8 performance guards).
+- See `PERFORMANCE_COMPARISON_v0.1.18.md` for the comparison.
+
 ---
 
 ## Step 1 — Project Setup + Git Foundation
@@ -163,3 +222,66 @@ simply unreachable behind a mandatory account wall.
 - Full suite: 329 extension tests + 48 backend E2E tests, all passing.
 
 ### Git tag: v0.1.17
+
+## Step 11 — Performance Pass + Dashboard Filter Chips (v0.1.18 → v0.1.22)
+
+### What was built
+Five incremental fixes, developed and tested independently against the
+v0.1.17 baseline, then consolidated into one release:
+
+- **v0.1.18 — Performance pass** (`PERFORMANCE_COMPARISON_v0.1.18.md`):
+  content-script mutation bursts coalesced into one lookup per 50ms;
+  backend search aborts after 2.5s and falls back to local; dashboard
+  keystrokes debounced 100ms; Supabase's blocking SDK calls moved off
+  FastAPI's event loop; `/health` runs its two checks concurrently;
+  memory listing runs its count + page query concurrently; embedding
+  cache capped at 512 vectors (LRU). 385/385 tests passing.
+- **v0.1.19 — Prompt latency fix** (`LATENCY_FIX_v0.1.19.md`): tightened
+  the remote-search budget from 2.5s to 250ms with a 350ms content-script
+  watchdog, so a slow or unreachable backend can no longer stall the
+  user's outgoing prompt. Worst-case wait dropped from ~2.6s to ~370ms.
+  387/387 tests passing.
+- **v0.1.20 — Console warning fix** (`CONSOLE_FIX_v0.1.20.md`): replaced
+  per-button startup wiring with one delegated capture-phase click
+  listener, removing a spurious `console.warn` that fired on Claude/Gemini
+  every time the page loaded with an empty prompt box (normal state, not
+  an error). 388/388 tests passing.
+- **v0.1.21 — Extension context fix** (`CONTEXT_FIX_v0.1.21.md`):
+  centralized content-script → service-worker messaging in
+  `safeSendMessage`, which now catches the `Extension context invalidated`
+  error that follows an unpacked-extension reload and shows an in-page
+  toast asking the user to refresh the tab, instead of failing silently.
+  390/390 tests passing.
+- **v0.1.22 — Dashboard filter chips**: the four static stat cards
+  (`stat-total`/`stat-chatgpt`/`stat-claude`/`stat-other`) were dead
+  weight -- clicking them did nothing, and the "Gemini + Copilot" card
+  merged two sources into one number with no way to filter to just one of
+  them; the only working filter was a `<select>` that wasn't visually
+  connected to the cards at all. Replaced with seven clickable pill chips
+  (`extension/dashboard/index.html` `#source-chips`) -- All, ChatGPT,
+  Claude, Gemini, Copilot, Perplexity, Grok -- each showing a live count
+  and wired via `handleChipClick`/`activeSource` in `dashboard.js`. Gemini
+  and Copilot are now always counted and filtered separately. Perplexity
+  and Grok are new filterable categories in the dashboard, but note:
+  capture is **not** wired up for those two sites yet (`manifest.json`
+  host_permissions / content_scripts still only cover ChatGPT, Claude,
+  Gemini, Copilot) -- their chips will read 0 until that's built
+  separately, tracked in `IDEAS.md`.
+
+### Compatibility
+Public API routes, response models, Chrome storage keys/memory data
+formats, capture, semantic injection, anonymous mode, auth, billing,
+teams, and supported-site list are all unchanged by v0.1.18-v0.1.21.
+v0.1.22 only touches the dashboard's stat/filter UI.
+
+### Tests
+- `tests/step6/test_dashboard.py`: `test_stats_cards_present` and
+  `test_filter_by_source` updated to match the new chip markup (the old
+  `stat-total`/`mem-filter` IDs no longer exist); added
+  `test_source_chips_cover_six_platforms_and_stay_separate` locking in all
+  six chips, that Gemini/Copilot never re-merge, and that `handleChipClick`
+  stays wired up.
+- Full extension + backend suite passing (390 pre-existing + dashboard
+  chip updates).
+
+### Git tag: v0.1.22
