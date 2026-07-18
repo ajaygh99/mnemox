@@ -285,3 +285,51 @@ v0.1.22 only touches the dashboard's stat/filter UI.
   chip updates).
 
 ### Git tag: v0.1.22
+
+## Step 12 — v0.1.22 Submitted to Chrome Web Store + Canonical Folder
+
+**Date:** 2026-07-18
+
+### What happened
+- `mnemox-extension-v0.1.22.zip` (the Step 11 release: performance pass +
+  latency/console/context fixes + dashboard filter chips) was built,
+  verified (manifest version, JS syntax on all three script files,
+  chip markup present, 17-file package), and **submitted to the Chrome
+  Web Store Developer Dashboard for review**. No screenshot of the
+  submission confirmation was captured -- noted here instead so the
+  status isn't lost. Status as of this entry: pending review.
+- The full Step 11 commit (`b31767e`) was merged into
+  `github.com/ajaygh99/mnemox`'s `main` branch on GitHub (fast-forward
+  from `0e47f86`).
+- Backend Qdrant connectivity was fixed in production this same session,
+  separately from the extension release: no Qdrant Cloud cluster
+  existed at all (this is why `/health` had reported
+  `qdrant_connected: false` since at least the v0.1.17 CWS rejection --
+  not a code bug). Provisioned a free cluster on Qdrant Cloud, set
+  `QDRANT_URL` / `QDRANT_API_KEY` in Railway's Variables tab for the
+  `mnemox` service. Confirmed live: `/health` now returns
+  `qdrant_connected: true`, `mnemox_memories` collection auto-created on
+  startup via `ensure_collection()`.
+
+### Canonical working folder
+`C:\Users\ajjuk\Documents\Cowork\mnemox\Codex_Mnemox` is the canonical
+working folder going forward, per user decision. The sibling checkout at
+`C:\Users\ajjuk\Documents\Cowork\mnemox\mnemox` is the same repo on the
+same `main` branch, already fast-forwarded to this commit -- keep it in
+sync with `git pull`, don't edit it independently. (This session's merge
+required manually resolving two divergent uncommitted working trees and
+a version-numbering collision between two unrelated "v0.1.18" changes --
+avoid repeating that by treating Codex_Mnemox as the single source of
+truth from here on.)
+
+### Next steps
+1. Wait for Chrome Web Store review of v0.1.22.
+2. Perplexity and Grok are filterable in the dashboard now but have no
+   real capture support yet (`manifest.json` host_permissions /
+   content_scripts still only cover ChatGPT, Claude, Gemini, Copilot) --
+   see `IDEAS.md`. Build real capture for those two sites before
+   advertising them publicly, or scope the store listing back to four
+   platforms.
+3. Stripe "Upgrade to Pro" flow is still unwired in the extension
+   (separate "Step 11" entry in `IDEAS.md` -- unrelated numbering to
+   this DEVLOG).
