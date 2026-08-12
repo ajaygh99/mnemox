@@ -69,15 +69,16 @@ They must be evaluated by the Phase 0 claim/capability matrix before publication
 
 ## Test baseline
 
-The tracked repository contains Python tests under `tests/`, but no tracked dependency lock or requirements file and no documented authoritative clean-clone command. At baseline, Windows resolved `python` only to the Microsoft Store application alias; `py` and `pytest` were unavailable. Therefore the supported clean-clone suite is **blocked**, not passed.
+The original B-01 baseline had no executable Python runtime or dependency manifest. B-02 subsequently added an exact `requirements.txt`, explicit UTF-8 test reads, and a release guard matching manifest version `0.1.22`. B-04 added the supported command to GitHub Actions and contributor documentation.
 
-Candidate command to validate after an issue explicitly establishes dependencies:
+Supported Windows command:
 
 ```powershell
+$env:PYTHONUTF8 = "1"
 python -m pytest -q
 ```
 
-This is a discovery candidate, not yet the supported command. Dependencies must be derived and pinned through a separate P0 issue; failures must be classified as environmental or product failures without skipping tests.
+On the current B-01 candidate rebased through merged B-02 and B-04, the complete local suite passes with 391 tests, zero failures, and zero skips. The exact-head GitHub Actions workflow must also pass before merge.
 
 ## Six-gate status
 
@@ -85,10 +86,10 @@ This is a discovery candidate, not yet the supported command. Dependencies must 
 |---|---|---|
 | Links | Blocked | Source URLs are inventoried, but live route/store validation is outside B-01 and lacks browser evidence |
 | Claims | Fail | Multiple configured/public-facing claims lack production evidence |
-| Functionality | Blocked | Python runtime/dependency baseline was unavailable at task start |
+| Functionality | Pass | Pinned clean-environment command runs 391 tests with zero failures or skips |
 | Accessibility | Not applicable | Documentation-only inventory; no user interface changed |
 | Security/privacy | Pass for this change | No secrets, content data, telemetry, permissions, or product behavior changed |
-| Performance | Not applicable | Documentation-only inventory; no runtime behavior changed |
+| Performance | Pass | The complete suite, including performance guards, passes; this inventory changes no runtime behavior |
 
 ## Rollback
 
