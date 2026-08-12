@@ -80,5 +80,5 @@ def test_expected_latency_budget_does_not_emit_extension_warning():
     assert "console.warn('[Mnemox] Injection budget reached" not in source
 
 
-def test_release_version_is_0_1_21():
-    assert '"version": "0.1.21"' in read("extension/manifest.json")
+def test_release_version_is_0_1_22():
+    assert '"version": "0.1.22"' in read("extension/manifest.json")

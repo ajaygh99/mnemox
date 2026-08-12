@@ -10,7 +10,7 @@ import pytest
 BACKEND = os.path.join(os.path.dirname(__file__), '..', '..', 'backend')
 
 def read(filename):
-    with open(os.path.join(BACKEND, filename)) as f:
+    with open(os.path.join(BACKEND, filename), encoding='utf-8') as f:
         return f.read()
 
 

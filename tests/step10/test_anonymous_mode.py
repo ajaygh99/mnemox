@@ -36,27 +36,27 @@ EXT = os.path.join(os.path.dirname(__file__), '..', '..', 'extension')
 
 
 def popup_js():
-    with open(os.path.join(EXT, 'popup', 'popup.js')) as f:
+    with open(os.path.join(EXT, 'popup', 'popup.js'), encoding='utf-8') as f:
         return f.read()
 
 
 def popup_html():
-    with open(os.path.join(EXT, 'popup', 'popup.html')) as f:
+    with open(os.path.join(EXT, 'popup', 'popup.html'), encoding='utf-8') as f:
         return f.read()
 
 
 def login_html():
-    with open(os.path.join(EXT, 'popup', 'login.html')) as f:
+    with open(os.path.join(EXT, 'popup', 'login.html'), encoding='utf-8') as f:
         return f.read()
 
 
 def login_js():
-    with open(os.path.join(EXT, 'popup', 'login.js')) as f:
+    with open(os.path.join(EXT, 'popup', 'login.js'), encoding='utf-8') as f:
         return f.read()
 
 
 def service_worker():
-    with open(os.path.join(EXT, 'background', 'service_worker.js')) as f:
+    with open(os.path.join(EXT, 'background', 'service_worker.js'), encoding='utf-8') as f:
         return f.read()
 
 
@@ -93,7 +93,7 @@ def test_view_memories_button_wired_outside_any_auth_check():
 
 
 def test_dashboard_reads_local_storage_directly():
-    with open(os.path.join(EXT, 'dashboard', 'dashboard.js')) as f:
+    with open(os.path.join(EXT, 'dashboard', 'dashboard.js'), encoding='utf-8') as f:
         dash = f.read()
     assert "chrome.storage.local.get(" in dash
 

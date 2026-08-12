@@ -23,9 +23,9 @@ def read():
     # tests check the dashboard as a whole, so read() concatenates both
     # files -- most of the assertions below don't care which file a given
     # string lives in.
-    with open(DASH) as f:
+    with open(DASH, encoding='utf-8') as f:
         html = f.read()
-    with open(DASH_JS) as f:
+    with open(DASH_JS, encoding='utf-8') as f:
         js = f.read()
     return html + '\n' + js
 
