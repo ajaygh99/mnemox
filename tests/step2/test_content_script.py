@@ -11,7 +11,7 @@ import pytest
 CONTENT = os.path.join(os.path.dirname(__file__), '..', '..', 'extension', 'content', 'content.js')
 
 def read():
-    with open(CONTENT) as f:
+    with open(CONTENT, encoding='utf-8') as f:
         return f.read()
 
 

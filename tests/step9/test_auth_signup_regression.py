@@ -21,22 +21,22 @@ EXT = os.path.join(os.path.dirname(__file__), '..', '..', 'extension')
 
 
 def sw():
-    with open(os.path.join(EXT, 'background', 'service_worker.js')) as f:
+    with open(os.path.join(EXT, 'background', 'service_worker.js'), encoding='utf-8') as f:
         return f.read()
 
 
 def login_js():
-    with open(os.path.join(EXT, 'popup', 'login.js')) as f:
+    with open(os.path.join(EXT, 'popup', 'login.js'), encoding='utf-8') as f:
         return f.read()
 
 
 def popup_js():
-    with open(os.path.join(EXT, 'popup', 'popup.js')) as f:
+    with open(os.path.join(EXT, 'popup', 'popup.js'), encoding='utf-8') as f:
         return f.read()
 
 
 def popup_html():
-    with open(os.path.join(EXT, 'popup', 'popup.html')) as f:
+    with open(os.path.join(EXT, 'popup', 'popup.html'), encoding='utf-8') as f:
         return f.read()
 
 
@@ -198,9 +198,9 @@ def dashboard_html():
     # entirely by MV3's default CSP -- see tests/step6 for the full story)
     # into an external dashboard.js. Concatenate both so existing assertions
     # about dashboard behavior don't care which file a string lives in.
-    with open(os.path.join(EXT, 'dashboard', 'index.html')) as f:
+    with open(os.path.join(EXT, 'dashboard', 'index.html'), encoding='utf-8') as f:
         html = f.read()
-    with open(os.path.join(EXT, 'dashboard', 'dashboard.js')) as f:
+    with open(os.path.join(EXT, 'dashboard', 'dashboard.js'), encoding='utf-8') as f:
         js = f.read()
     return html + '\n' + js
 
@@ -286,20 +286,20 @@ def test_popup_calls_showversion_on_load():
 # with addEventListener / event delegation instead of inline handlers.
 
 def test_dashboard_html_has_no_inline_script_block():
-    with open(os.path.join(EXT, 'dashboard', 'index.html')) as f:
+    with open(os.path.join(EXT, 'dashboard', 'index.html'), encoding='utf-8') as f:
         html = f.read()
     assert '<script>' not in html, \
         "inline <script> blocks are silently blocked by MV3's default CSP"
 
 
 def test_dashboard_html_loads_external_script():
-    with open(os.path.join(EXT, 'dashboard', 'index.html')) as f:
+    with open(os.path.join(EXT, 'dashboard', 'index.html'), encoding='utf-8') as f:
         html = f.read()
     assert '<script src="dashboard.js">' in html
 
 
 def test_dashboard_html_has_no_inline_event_handlers():
-    with open(os.path.join(EXT, 'dashboard', 'index.html')) as f:
+    with open(os.path.join(EXT, 'dashboard', 'index.html'), encoding='utf-8') as f:
         html = f.read()
     for attr in ('onclick=', 'onchange=', 'oninput=', 'onsubmit='):
         assert attr not in html, \
@@ -311,7 +311,7 @@ def test_dashboard_js_file_exists():
 
 
 def test_dashboard_js_generated_cards_use_data_attributes_not_onclick():
-    with open(os.path.join(EXT, 'dashboard', 'dashboard.js')) as f:
+    with open(os.path.join(EXT, 'dashboard', 'dashboard.js'), encoding='utf-8') as f:
         js = f.read()
     # memoryCard() builds HTML via innerHTML -- inline onclick= there is
     # JUST as CSP-blocked as a static onclick= in the HTML file itself.
@@ -322,7 +322,7 @@ def test_dashboard_js_generated_cards_use_data_attributes_not_onclick():
 
 
 def test_dashboard_js_wires_events_programmatically():
-    with open(os.path.join(EXT, 'dashboard', 'dashboard.js')) as f:
+    with open(os.path.join(EXT, 'dashboard', 'dashboard.js'), encoding='utf-8') as f:
         js = f.read()
     assert 'addEventListener' in js
     assert 'function wireUpEvents' in js
@@ -344,7 +344,7 @@ def test_dashboard_js_wires_events_programmatically():
 # which is the DEFAULT config) had the bug, so it hit every user by default.
 
 def content_js():
-    with open(os.path.join(EXT, 'content', 'content.js')) as f:
+    with open(os.path.join(EXT, 'content', 'content.js'), encoding='utf-8') as f:
         return f.read()
 
 

@@ -10,7 +10,7 @@ import pytest
 EXT = os.path.join(os.path.dirname(__file__), '..', '..', 'extension')
 
 def read(path):
-    with open(os.path.join(EXT, path)) as f:
+    with open(os.path.join(EXT, path), encoding='utf-8') as f:
         return f.read()
 
 CONTENT = lambda: read('content/content.js')
