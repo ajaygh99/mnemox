@@ -12,11 +12,11 @@ EXT = os.path.join(os.path.dirname(__file__), '..', '..', 'extension')
 
 def read(filename, base=None):
     base = base or BACKEND
-    with open(os.path.join(base, filename)) as f:
+    with open(os.path.join(base, filename), encoding='utf-8') as f:
         return f.read()
 
 def ext(path):
-    with open(os.path.join(EXT, path)) as f:
+    with open(os.path.join(EXT, path), encoding='utf-8') as f:
         return f.read()
 
 

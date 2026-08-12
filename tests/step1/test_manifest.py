@@ -13,7 +13,7 @@ BASE = os.path.join(os.path.dirname(__file__), '..', '..', 'extension')
 
 def load_manifest():
     path = os.path.join(BASE, 'manifest.json')
-    with open(path) as f:
+    with open(path, encoding='utf-8') as f:
         return json.load(f)
 
 
@@ -77,26 +77,26 @@ def test_content_script_exists():
 
 def test_service_worker_handles_ping():
     path = os.path.join(BASE, 'background', 'service_worker.js')
-    with open(path) as f:
+    with open(path, encoding='utf-8') as f:
         code = f.read()
     assert 'MNEMOX_PING' in code, "Service worker must handle MNEMOX_PING"
 
 def test_service_worker_handles_memory_captured():
     path = os.path.join(BASE, 'background', 'service_worker.js')
-    with open(path) as f:
+    with open(path, encoding='utf-8') as f:
         code = f.read()
     assert 'MNEMOX_MEMORY_CAPTURED' in code
 
 def test_content_script_detects_all_sites():
     path = os.path.join(BASE, 'content', 'content.js')
-    with open(path) as f:
+    with open(path, encoding='utf-8') as f:
         code = f.read()
     for site in ['chatgpt', 'claude', 'gemini', 'copilot']:
         assert site in code, f"Content script missing site: {site}"
 
 def test_popup_js_has_toggle_handlers():
     path = os.path.join(BASE, 'popup', 'popup.js')
-    with open(path) as f:
+    with open(path, encoding='utf-8') as f:
         code = f.read()
     assert 'captureToggle' in code or 'capture-toggle' in code
     assert 'injectToggle' in code or 'inject-toggle' in code
@@ -109,7 +109,7 @@ def test_no_secrets_in_code():
             if not fname.endswith(('.js', '.json', '.html')):
                 continue
             fpath = os.path.join(root, fname)
-            with open(fpath) as f:
+            with open(fpath, encoding='utf-8') as f:
                 content = f.read()
             for pattern in suspicious:
                 assert pattern not in content, \
