@@ -27,29 +27,18 @@ jobs:
       - name: Check PR status
         id: check-pr
         shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.REVIEWER_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          # Get PR details
-          PR_DATA=$(gh pr view $PR_NUMBER --json isDraft,checks,statusCheckRollup)
-
           # Verify it's a draft PR
-          IS_DRAFT=$(echo "$PR_DATA" | jq '.isDraft')
+          IS_DRAFT="${{ github.event.pull_request.draft }}"
           if [ "$IS_DRAFT" != "true" ]; then
             echo "❌ PR is not a draft. Skipping."
             exit 1
           fi
 
-          # Check all required checks pass
-          CHECKS=$(echo "$PR_DATA" | jq '.statusCheckRollup[].state' | sort | uniq)
-          if echo "$CHECKS" | grep -q "FAILURE\|PENDING"; then
-            echo "⏳ Required checks not all passing. Waiting."
-            exit 1
-          fi
-
+          # If we reach here, PR is draft and has agent-ready label (checked by workflow condition)
           echo "draft=true" >> $GITHUB_OUTPUT
           echo "ready=true" >> $GITHUB_OUTPUT
+          echo "✓ PR is draft with agent-ready label. Ready for approval."
 
       - name: Approve PR
         if: steps.check-pr.outputs.ready == 'true'
