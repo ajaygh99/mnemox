@@ -2,7 +2,7 @@ name: Autonomous Review & Merge
 
 on:
   pull_request:
-    types: [opened, synchronize, ready_for_review]
+    types: [opened, synchronize, ready_for_review, labeled]
   workflow_run:
     workflows: ["CI", "test"]
     types: [completed]
@@ -17,9 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event.pull_request.draft == true &&
-      contains(github.event.pull_request.labels.*.name, 'agent-ready') &&
-      github.event.pull_request.user.login == 'codex-mnemox' ||
-      github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+      contains(github.event.pull_request.labels.*.name, 'agent-ready')
 
     steps:
       - uses: actions/checkout@v4
