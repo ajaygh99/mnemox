@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ajaygh99/mnemox/contracts/events/event.schema.json",
+  "title": "Mnemox content-free event contract",
+  "description": "Contract only. This schema does not authorize event collection or transmission.",
+  "oneOf": [
+    {
+      "title": "install",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "event_name", "timestamp", "extension_version", "os", "browser"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "event_name": {"const": "install"},
+        "timestamp": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?Z$"},
+        "extension_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+        "os": {"enum": ["windows", "macos", "linux"]},
+        "browser": {"enum": ["chrome", "edge", "brave", "other"]}
+      }
+    },
+    {
+      "title": "onboarding_started",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "event_name", "timestamp", "step"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "event_name": {"const": "onboarding_started"},
+        "timestamp": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?Z$"},
+        "step": {"enum": ["welcome", "permissions", "api_config", "first_memory"]}
+      }
+    },
+    {
+      "title": "onboarding_completed",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "event_name", "timestamp", "duration_seconds", "step_completed"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "event_name": {"const": "onboarding_completed"},
+        "timestamp": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?Z$"},
+        "duration_seconds": {"type": "integer", "minimum": 0, "maximum": 86400},
+        "step_completed": {"enum": ["welcome", "permissions", "api_config", "first_memory"]}
+      }
+    },
+    {
+      "title": "capture_result",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "event_name", "timestamp", "source", "success", "error_code"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "event_name": {"const": "capture_result"},
+        "timestamp": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?Z$"},
+        "source": {"enum": ["chatgpt", "claude", "gemini", "copilot"]},
+        "success": {"type": "boolean"},
+        "error_code": {"enum": ["encoding_error", "dom_timeout", "storage_full", null]}
+      }
+    },
+    {
+      "title": "preview_decision",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "event_name", "timestamp", "memories_shown", "user_action"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "event_name": {"const": "preview_decision"},
+        "timestamp": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?Z$"},
+        "memories_shown": {"type": "integer", "minimum": 0, "maximum": 500},
+        "user_action": {"enum": ["approved", "rejected", "edited"]}
+      }
+    },
+    {
+      "title": "injection_result",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "event_name", "timestamp", "memories_injected", "success", "error_code"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "event_name": {"const": "injection_result"},
+        "timestamp": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?Z$"},
+        "memories_injected": {"type": "integer", "minimum": 0, "maximum": 500},
+        "success": {"type": "boolean"},
+        "error_code": {"enum": ["dom_timeout", "injection_blocked", null]}
+      }
+    },
+    {
+      "title": "feedback",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "event_name", "timestamp", "type", "context"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "event_name": {"const": "feedback"},
+        "timestamp": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?Z$"},
+        "type": {"enum": ["useful", "not_useful", "error"]},
+        "context": {"enum": ["after_capture", "after_injection", "manual"]}
+      }
+    },
+    {
+      "title": "error_event",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "event_name", "timestamp", "error_code", "source_component", "severity"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "event_name": {"const": "error_event"},
+        "timestamp": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?Z$"},
+        "error_code": {"enum": ["utf8_decode_error", "api_timeout", "version_mismatch", "dom_timeout", "storage_full", "injection_blocked", "unknown_safe_error"]},
+        "source_component": {"enum": ["extension", "dashboard", "backend"]},
+        "severity": {"enum": ["warn", "error", "fatal"]}
+      }
+    }
+  ]
+}
