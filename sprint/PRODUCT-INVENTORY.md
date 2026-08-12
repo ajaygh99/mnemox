@@ -1,7 +1,9 @@
 # Mnemox canonical product and repository inventory
 
-Status: Bootstrap B-01 evidence; external production state is not implied  
-Verified from: clean worktree of `origin/main`  
+Status: Bootstrap B-01 evidence; external production state is not implied
+
+Verified from: clean worktree of `origin/main`
+
 Issue: `ajaygh99/mnemox#2`
 
 ## Canonical source

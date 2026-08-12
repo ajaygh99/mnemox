@@ -1,8 +1,11 @@
 # B-01 exact-candidate validation
 
-Issue: `ajaygh99/mnemox#2`  
-Candidate commit evaluated: `1799fb902fc461e20636c9e0f4e53854b5555fd4`  
-Baseline: `origin/main` at `2b80eed0b984ccf7febc3ce806d871395c2f9263`  
+Issue: `ajaygh99/mnemox#2`
+
+Candidate commit evaluated: `1799fb902fc461e20636c9e0f4e53854b5555fd4`
+
+Baseline: `origin/main` at `2b80eed0b984ccf7febc3ce806d871395c2f9263`
+
 Change scope: `sprint/PRODUCT-INVENTORY.md`
 
 ## Scope and repository checks
