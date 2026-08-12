@@ -1,7 +1,9 @@
 # B-02 exact-candidate validation
 
-Issue: `ajaygh99/mnemox#4`  
-Candidate commit: `761857705d7e58774591fe8a34c0b655994fc3a2`  
+Issue: `ajaygh99/mnemox#4`
+
+Candidate commit: `761857705d7e58774591fe8a34c0b655994fc3a2`
+
 Baseline: `origin/main` at `2b80eed0b984ccf7febc3ce806d871395c2f9263`
 
 ## Scope
