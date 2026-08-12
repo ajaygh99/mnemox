@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "participant_code": "P01",
+  "consent": {
+    "status": "accepted",
+    "timestamp_utc": "YYYY-MM-DDTHH:MM:SSZ"
+  },
+  "approved_build_sha": "FULL_GIT_SHA",
+  "product_version": "0.1.22",
+  "session_status": "valid",
+  "tasks": [
+    {
+      "task_code": "T1_TRUST",
+      "outcome": "clear",
+      "elapsed_seconds": 0,
+      "attempt_count": 1,
+      "intervention_code": "NONE",
+      "severity": 0,
+      "issue_code": "NONE"
+    }
+  ],
+  "protocol_deviation_codes": [],
+  "prohibited_data_incident": false,
+  "deletion_deadline_utc_date": "YYYY-MM-DD",
+  "review_status": "pending"
+}
