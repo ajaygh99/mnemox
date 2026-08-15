@@ -417,22 +417,25 @@ def test_popup_init_uses_render_memory_stats():
 # confirmed). These are cheap (only run on Enter/submit) and turn the next
 # manual test into an actual diagnosis.
 
-def test_capture_logs_when_capture_disabled():
+def test_capture_fails_closed_without_logging_settings():
     fn_match = re.search(r"function capturePrompt[\s\S]*?\n  \}", content_js())
     assert fn_match
-    assert "console.log('[Mnemox] Capture skipped: captureEnabled is false'" in fn_match.group(0)
+    assert '!hasValidConsent() || !settings.captureEnabled' in fn_match.group(0)
+    assert "captureEnabled is false'" not in fn_match.group(0)
 
 
-def test_capture_logs_when_text_too_short():
+def test_capture_does_not_log_short_prompt_content():
     fn_match = re.search(r"function capturePrompt[\s\S]*?\n  \}", content_js())
     assert fn_match
-    assert 'text too short after trim/strip' in fn_match.group(0)
+    assert 'text too short after trim/strip' not in fn_match.group(0)
+    assert 'JSON.stringify(text)' not in fn_match.group(0)
 
 
 def test_capture_logs_before_sending_to_service_worker():
     fn_match = re.search(r"function capturePrompt[\s\S]*?\n  \}", content_js())
     assert fn_match
-    assert 'Sending capture to service worker' in fn_match.group(0)
+    assert 'Sending consented capture to service worker' in fn_match.group(0)
+    assert 'stored.slice' not in fn_match.group(0)
 
 
 def test_capture_handles_sendmessage_failure_through_safe_wrapper():
@@ -448,7 +451,8 @@ def test_service_worker_logs_receipt_and_storage_write():
     fn_match = re.search(r"async function handleMemoryCaptured[\s\S]*?\n\}", body)
     assert fn_match
     fn_body = fn_match.group(0)
-    assert 'handleMemoryCaptured received' in fn_body
+    assert 'Capture request received for source' in fn_body
+    assert 'payload.content' not in fn_body.split('const newMemory', 1)[0]
     assert 'Storage write confirmed' in fn_body
 
 
@@ -508,17 +512,18 @@ def test_oninstalled_preserves_memories_key():
 # keydown (before that check) and on submit-button clicks, so the exact
 # failure point becomes visible on the next test.
 
-def test_keydown_logs_on_every_enter_press():
+def test_keydown_logs_content_free_submit_event():
     fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
     assert fn_match
     fn_body = fn_match.group(0)
-    assert "console.log('[Mnemox] Enter pressed on '" in fn_body
+    assert 'prompt content omitted from diagnostics' in fn_body
+    assert 'JSON.stringify(text' not in fn_body
 
 
-def test_keydown_logs_when_bailing_on_short_text():
+def test_keydown_does_not_log_short_prompt_content():
     fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
     assert fn_match
-    assert 'Enter handler bailed: text too short' in fn_match.group(0)
+    assert 'Enter handler bailed: text too short' not in fn_match.group(0)
 
 
 def test_submit_button_click_is_logged():
@@ -616,10 +621,11 @@ def test_dynamic_submit_buttons_use_event_delegation_without_candidate_dump():
 # promptEl against document.activeElement at the moment of the Enter press,
 # plus an unconditional dump of the wired element's identity at wire-time.
 
-def test_wire_time_dumps_matched_element():
+def test_wire_time_does_not_dump_matched_element():
     fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
     assert fn_match
-    assert 'Matched element:' in fn_match.group(0)
+    assert 'Matched element:' not in fn_match.group(0)
+    assert 'outerHTML.slice' not in fn_match.group(0)
 
 
 # -- Real fix: continuous input-event text tracking (v0.1.15) -----------------
@@ -661,13 +667,14 @@ def test_enter_handler_falls_back_to_last_known_text():
     assert 'lastKnownText' in keydown_body
 
 
-def test_enter_handler_no_longer_bails_on_first_empty_read():
+def test_enter_handler_still_uses_last_known_fallback_without_content_logging():
     # The old behavior returned immediately on an empty live read with no
     # fallback -- that's the exact bug that broke Claude capture. Assert the
-    # bail-out message now reflects that a fallback was already attempted.
+    # fallback remains present, while the prompt itself is not logged.
     fn_match = re.search(r"function attachPromptListeners[\s\S]*?\n  \}", content_js())
     assert fn_match
-    assert 'even after lastKnownText fallback' in fn_match.group(0)
+    assert 'lastKnownText' in fn_match.group(0)
+    assert 'even after lastKnownText fallback' not in fn_match.group(0)
 
 
 # -- v0.1.16: Gemini stale selector + cross-site synthetic-submit fallback ----

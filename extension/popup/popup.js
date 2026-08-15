@@ -22,14 +22,28 @@ async function checkAuth() {
 async function loadSettings() {
   return new Promise(resolve => {
     chrome.storage.local.get(
-      { captureEnabled: true, injectEnabled: true, memoryCount: 0, authPlan: 'free' },
+      { captureEnabled: false, injectEnabled: false, consentReceipt: null, memoryCount: 0, authPlan: 'free' },
       resolve
     );
   });
 }
 
 async function saveSettings(patch) {
-  return new Promise(resolve => chrome.storage.local.set(patch, resolve));
+  return new Promise(resolve => {
+    chrome.runtime.sendMessage({ type: 'MNEMOX_UPDATE_SETTINGS', payload: patch }, resolve);
+  });
+}
+
+function notifyActiveTab(patch) {
+  chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+    if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, Object.assign({
+      type: 'MNEMOX_SETTINGS_CHANGED'
+    }, patch));
+  });
+}
+
+function hasValidConsent(receipt) {
+  return !!(receipt && receipt.version === 1 && typeof receipt.acceptedAt === 'string');
 }
 
 // -- Detect active AI site -----------------------------------------------------
@@ -147,8 +161,41 @@ async function init() {
   // Toggles
   const captureToggle = document.getElementById('capture-toggle');
   const injectToggle  = document.getElementById('inject-toggle');
-  if (captureToggle) captureToggle.checked = settings.captureEnabled;
-  if (injectToggle)  injectToggle.checked  = settings.injectEnabled;
+  const consentPanel = document.getElementById('consent-panel');
+  const consentCheckbox = document.getElementById('consent-checkbox');
+  const consentButton = document.getElementById('consent-btn');
+  const withdrawButton = document.getElementById('withdraw-consent-btn');
+  const consented = hasValidConsent(settings.consentReceipt);
+  if (captureToggle) {
+    captureToggle.checked = consented && settings.captureEnabled === true;
+    captureToggle.disabled = !consented;
+  }
+  if (injectToggle) {
+    injectToggle.checked = consented && settings.injectEnabled === true;
+    injectToggle.disabled = !consented;
+  }
+  if (consentPanel) consentPanel.style.display = consented ? 'none' : '';
+  if (withdrawButton) withdrawButton.style.display = consented ? '' : 'none';
+  consentCheckbox?.addEventListener('change', () => {
+    consentButton.disabled = !consentCheckbox.checked;
+  });
+  consentButton?.addEventListener('click', async () => {
+    if (!consentCheckbox.checked) return;
+    const patch = {
+      consentReceipt: { version: 1, acceptedAt: new Date().toISOString() },
+      captureEnabled: true,
+      injectEnabled: true,
+    };
+    await saveSettings(patch);
+    notifyActiveTab(patch);
+    window.location.reload();
+  });
+  withdrawButton?.addEventListener('click', async () => {
+    const patch = { consentReceipt: null, captureEnabled: false, injectEnabled: false };
+    await saveSettings(patch);
+    notifyActiveTab(patch);
+    window.location.reload();
+  });
 
   captureToggle?.addEventListener('change', () => {
     saveSettings({ captureEnabled: captureToggle.checked });
