@@ -154,7 +154,7 @@ async function init() {
       siteEl.style.display = 'inline-block';
     } else {
       siteEl.textContent = 'Not on an AI site';
-      siteEl.style.color = '#6b7280';
+      siteEl.style.color = '#9ca3af';
     }
   }
 

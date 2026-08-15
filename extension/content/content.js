@@ -227,7 +227,7 @@
     searchMemories(originalText, function(memories) {
       if (!memories.length) return callback(false);
 
-      showInjectionPreview(memories, function(decision, editedContext) {
+      showInjectionPreview(memories, promptEl, function(decision, editedContext) {
         if (decision === 'cancel') return callback(false, 0, true);
         if (decision === 'reject') return callback(false, 0, false);
         var enriched = editedContext + '\n\n' + originalText;
@@ -240,7 +240,7 @@
     });
   }
 
-  function showInjectionPreview(memories, callback) {
+  function showInjectionPreview(memories, promptEl, callback) {
     var existing = document.getElementById('mnemox-injection-preview');
     if (existing) existing.remove();
     var contextOnly = buildContextBlock(memories, '').trim();
@@ -249,10 +249,11 @@
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
     overlay.setAttribute('aria-labelledby', 'mnemox-preview-title');
+    overlay.setAttribute('aria-describedby', 'mnemox-preview-description');
     overlay.innerHTML =
       '<div class="mnemox-preview-card">' +
       '<h2 id="mnemox-preview-title">Review memories before sending</h2>' +
-      '<p>Edit the proposed context, approve it, send without memories, or return to your prompt.</p>' +
+      '<p id="mnemox-preview-description">Edit the proposed context, approve it, send without memories, or return to your prompt.</p>' +
       '<label for="mnemox-preview-context">Proposed memory context</label>' +
       '<textarea id="mnemox-preview-context"></textarea>' +
       '<div class="mnemox-preview-actions">' +
@@ -266,6 +267,7 @@
     function finish(decision) {
       var edited = textarea.value.trim();
       overlay.remove();
+      if (promptEl && typeof promptEl.focus === 'function') promptEl.focus();
       callback(decision, edited);
     }
     document.getElementById('mnemox-preview-approve').addEventListener('click', function() { finish('approve'); });
@@ -273,6 +275,18 @@
     document.getElementById('mnemox-preview-cancel').addEventListener('click', function() { finish('cancel'); });
     overlay.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') finish('cancel');
+      if (e.key === 'Tab') {
+        var controls = overlay.querySelectorAll('textarea,button');
+        var first = controls[0];
+        var last = controls[controls.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     });
     textarea.focus();
   }
@@ -296,7 +310,8 @@
       '.mnemox-preview-card h2{font-size:18px;margin:0 0 8px}.mnemox-preview-card p,.mnemox-preview-card label{font-size:13px;display:block;margin:0 0 8px;}' +
       '#mnemox-preview-context{width:100%;min-height:180px;background:#030712;color:#f9fafb;border:1px solid #6b7280;border-radius:6px;padding:10px;}' +
       '.mnemox-preview-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}.mnemox-preview-actions button{padding:8px 12px;border-radius:6px;border:1px solid #6b7280;cursor:pointer;}' +
-      '#mnemox-preview-approve{background:#7c3aed;color:white;}';
+      '#mnemox-preview-approve{background:#7c3aed;color:white;}' +
+      '#mnemox-injection-preview button:focus-visible,#mnemox-injection-preview textarea:focus-visible{outline:3px solid #fbbf24;outline-offset:3px;}';
     document.head.appendChild(style);
   }
 
@@ -306,7 +321,10 @@
     if (!toast) {
       toast = document.createElement('div');
       toast.id = 'mnemox-toast';
-      toast.innerHTML = '<span class="mnemox-icon">bolt</span><div><div id="mnemox-toast-text"></div><div class="mnemox-sub" id="mnemox-toast-sub"></div></div>';
+      toast.setAttribute('role', 'status');
+      toast.setAttribute('aria-live', 'polite');
+      toast.setAttribute('aria-atomic', 'true');
+      toast.innerHTML = '<span class="mnemox-icon" aria-hidden="true">bolt</span><div><div id="mnemox-toast-text"></div><div class="mnemox-sub" id="mnemox-toast-sub"></div></div>';
       document.body.appendChild(toast);
     }
     document.getElementById('mnemox-toast-text').textContent = message;

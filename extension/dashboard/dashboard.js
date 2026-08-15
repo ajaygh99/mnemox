@@ -14,7 +14,7 @@
 // State
 var allMemories = [];
 var activeSource = ''; // '' = All. One of chatgpt/claude/gemini/copilot/perplexity/grok.
-var settings = { captureEnabled: true, injectEnabled: true, backendUrl: '', apiKey: '' };
+var settings = { captureEnabled: false, injectEnabled: false, consentReceipt: null, backendUrl: '', apiKey: '' };
 var filterTimer = null;
 
 // Every source the dashboard knows how to count/filter/badge. Keep in sync
@@ -44,17 +44,18 @@ function loadData() {
       { id: '2', content: 'Write a Python FastAPI endpoint for user auth', source: 'claude', capturedAt: Date.now() - 3600000 },
       { id: '3', content: 'How do I reduce AI API costs for my startup', source: 'gemini', capturedAt: Date.now() - 1800000 },
     ];
-    settings = { captureEnabled: true, injectEnabled: true, backendUrl: 'https://mnemox-production.up.railway.app', apiKey: '' };
+    settings = { captureEnabled: false, injectEnabled: false, consentReceipt: null, backendUrl: 'https://mnemox-production.up.railway.app', apiKey: '' };
     renderAll();
     return;
   }
 
   chrome.storage.local.get(
-    ['memories', 'captureEnabled', 'injectEnabled', 'backendUrl', 'apiKey'],
+    ['memories', 'captureEnabled', 'injectEnabled', 'consentReceipt', 'backendUrl', 'apiKey'],
     function(data) {
       allMemories = (data.memories || []).slice().reverse(); // newest first
-      settings.captureEnabled = data.captureEnabled !== false;
-      settings.injectEnabled  = data.injectEnabled  !== false;
+      settings.consentReceipt = data.consentReceipt || null;
+      settings.captureEnabled = hasConsent() && data.captureEnabled === true;
+      settings.injectEnabled  = hasConsent() && data.injectEnabled === true;
       settings.backendUrl = data.backendUrl || '';
       settings.apiKey     = data.apiKey     || '';
       renderAll();
@@ -191,11 +192,24 @@ function renderSettings() {
   document.getElementById('s-api-key').value     = settings.apiKey     || '';
   document.getElementById('t-capture').className = 'toggle' + (settings.captureEnabled ? ' on' : '');
   document.getElementById('t-inject').className  = 'toggle' + (settings.injectEnabled  ? ' on' : '');
+  document.getElementById('t-capture').setAttribute('aria-checked', String(!!settings.captureEnabled));
+  document.getElementById('t-inject').setAttribute('aria-checked', String(!!settings.injectEnabled));
+  document.getElementById('t-capture').disabled = !hasConsent();
+  document.getElementById('t-inject').disabled = !hasConsent();
+  document.getElementById('t-capture').title = hasConsent() ? '' : 'Enable consent in the popup first';
+  document.getElementById('t-inject').title = hasConsent() ? '' : 'Enable consent in the popup first';
+}
+
+function hasConsent() {
+  return !!(settings.consentReceipt && settings.consentReceipt.version === 1 &&
+    typeof settings.consentReceipt.acceptedAt === 'string');
 }
 
 function toggleSetting(key, toggleId) {
+  if (!hasConsent()) return;
   settings[key] = !settings[key];
   document.getElementById(toggleId).classList.toggle('on', settings[key]);
+  document.getElementById(toggleId).setAttribute('aria-checked', String(!!settings[key]));
   if (typeof chrome !== 'undefined' && chrome.storage) {
     var patch = {}; patch[key] = settings[key];
     chrome.storage.local.set(patch);

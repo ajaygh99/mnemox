@@ -20,11 +20,13 @@ document.getElementById('goto-signup').addEventListener('click', function() {
   signinForm.style.display = 'none';
   signupForm.style.display = 'block';
   hideError();
+  document.getElementById('signup-email').focus();
 });
 document.getElementById('goto-signin').addEventListener('click', function() {
   signupForm.style.display = 'none';
   signinForm.style.display = 'block';
   hideError();
+  document.getElementById('signin-email').focus();
 });
 
 // An account was never required to use Mnemox -- capture, inject, and the
@@ -100,6 +102,8 @@ document.getElementById('signup-btn').addEventListener('click', function() {
 function showConfirmationScreen(email) {
   var wrap = document.createElement('div');
   wrap.id = 'confirm-screen';
+  wrap.setAttribute('role', 'status');
+  wrap.setAttribute('aria-live', 'polite');
   wrap.style.cssText = 'width:100%;text-align:center;padding:12px 2px 4px;';
 
   var icon = document.createElement('div');
@@ -107,6 +111,8 @@ function showConfirmationScreen(email) {
   icon.textContent = '📬';
 
   var title = document.createElement('div');
+  title.id = 'confirm-title';
+  title.tabIndex = -1;
   title.style.cssText = 'color:#a78bfa;font-weight:700;font-size:16px;margin-bottom:8px;';
   title.textContent = 'Account created — check your email!';
 
@@ -126,6 +132,7 @@ function showConfirmationScreen(email) {
     wrap.remove();
     signupForm.style.display = 'none';
     signinForm.style.display = 'block';
+    document.getElementById('signin-email').focus();
   });
 
   wrap.appendChild(icon);
@@ -133,4 +140,6 @@ function showConfirmationScreen(email) {
   wrap.appendChild(body);
   wrap.appendChild(backBtn);
   document.body.appendChild(wrap);
+  wrap.setAttribute('aria-labelledby', 'confirm-title');
+  title.focus();
 }

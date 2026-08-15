@@ -15,7 +15,7 @@
     }
     .logo { font-size: 28px; margin-bottom: 6px; }
     h1 { font-size: 20px; font-weight: 700; color: #a78bfa; margin-bottom: 4px; }
-    .tagline { font-size: 12px; color: #6b7280; margin-bottom: 28px; text-align: center; }
+    .tagline { font-size: 12px; color: #9ca3af; margin-bottom: 28px; text-align: center; }
 
     .form-group { width: 100%; margin-bottom: 14px; }
     label { font-size: 12px; color: #9ca3af; display: block; margin-bottom: 5px; }
@@ -26,6 +26,7 @@
       outline: none; transition: border-color 0.2s;
     }
     input:focus { border-color: #7c3aed; }
+    button:focus-visible,input:focus-visible { outline:3px solid #fbbf24;outline-offset:3px; }
 
     .btn {
       width: 100%; padding: 11px;
@@ -57,10 +58,9 @@
       width: 100%; margin-bottom: 14px; display: none;
     }
     .toggle-link {
-      font-size: 12px; color: #6b7280; text-align: center; margin-top: 16px;
+      font-size: 12px; color: #9ca3af; text-align: center; margin-top: 16px;
     }
-    .toggle-link span { color: #a78bfa; cursor: pointer; }
-    .toggle-link span:hover { text-decoration: underline; }
+    .link-button { color:#c4b5fd;cursor:pointer;background:none;border:0;padding:3px;font:inherit;text-decoration:underline; }
 
     .plan-badge {
       background: linear-gradient(135deg, #7c3aed, #6d28d9);
@@ -71,25 +71,25 @@
   </style>
 </head>
 <body>
-  <div class="logo">🧠</div>
+  <div class="logo" aria-hidden="true">🧠</div>
   <h1>Mnemox</h1>
   <div class="tagline">Your AI memory, everywhere</div>
 
-  <div class="error" id="error-msg"></div>
+  <div class="error" id="error-msg" role="alert" aria-live="assertive" aria-atomic="true"></div>
 
   <!-- Sign In Form -->
   <div id="signin-form" style="width:100%">
     <div class="form-group">
-      <label>Email</label>
+      <label for="signin-email">Email</label>
       <input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email">
     </div>
     <div class="form-group">
-      <label>Password</label>
+      <label for="signin-password">Password</label>
       <input type="password" id="signin-password" placeholder="••••••••" autocomplete="current-password">
     </div>
     <button class="btn btn-primary" id="signin-btn">Sign In</button>
     <div class="toggle-link">
-      Don't have an account? <span id="goto-signup">Sign up free</span>
+      Don't have an account? <button type="button" class="link-button" id="goto-signup">Sign up free</button>
     </div>
   </div>
 
@@ -97,21 +97,21 @@
   <div id="signup-form" style="width:100%; display:none">
     <div class="plan-badge">Free — 50 memories</div>
     <div class="form-group">
-      <label>Email</label>
-      <input type="email" id="signup-email" placeholder="you@example.com">
+      <label for="signup-email">Email</label>
+      <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email">
     </div>
     <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="signup-password" placeholder="Min 8 characters">
+      <label for="signup-password">Password</label>
+      <input type="password" id="signup-password" placeholder="Min 8 characters" autocomplete="new-password">
     </div>
     <button class="btn btn-primary" id="signup-btn">Create Free Account</button>
     <div class="toggle-link">
-      Already have an account? <span id="goto-signin">Sign in</span>
+      Already have an account? <button type="button" class="link-button" id="goto-signin">Sign in</button>
     </div>
   </div>
 
   <div class="toggle-link" style="margin-top:10px">
-    <span id="skip-login">← Continue without an account</span>
+    <button type="button" class="link-button" id="skip-login">← Continue without an account</button>
   </div>
 
   <script src="login.js"></script>
