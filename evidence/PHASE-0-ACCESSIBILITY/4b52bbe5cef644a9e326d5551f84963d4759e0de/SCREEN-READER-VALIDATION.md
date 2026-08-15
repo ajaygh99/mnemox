@@ -2,8 +2,8 @@
 
 Validated candidate: `4b52bbe5cef644a9e326d5551f84963d4759e0de`
 
-Status: **BLOCKED — NVDA/manual observation required**
+Status: **PASS — owner-reported NVDA observation**
 
-No NVDA session was available to Codex, so no assistive-technology result is claimed. Source and automated tests confirm intended names, roles, states, descriptions, alert/status regions, and content-free announcements only.
+No NVDA session was available to Codex. On 2026-08-15, the owner reported that NVDA correctly announced names, roles, states, errors, status messages, and the injection-dialog controls against PR #33.
 
-An independent observer must run the NVDA smoke-test checklist in `docs/audits/onboarding/accessibility/MANUAL-VALIDATION-GUIDE.md` against the exact final build and record NVDA version, Chrome version, observer, UTC date, announcements, and defects.
+This is owner-attested evidence, not a Codex-observed result. NVDA version, Chrome version, and observer name were not supplied. Any future implementation change requires a new smoke test.

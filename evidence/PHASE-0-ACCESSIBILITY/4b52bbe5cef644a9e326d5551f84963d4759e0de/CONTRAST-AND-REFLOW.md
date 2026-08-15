@@ -13,6 +13,6 @@ WCAG relative-luminance calculations against popup/login background `#0d0d1a`:
 | `#f87171` | error text | 6.97:1 | 4.5:1 | PASS |
 | `#fbbf24` | focus indicator | 11.55:1 | 3:1 | PASS |
 
-Status: **PASS for defined source color pairs; BLOCKED for rendered-state and 200% reflow observation.**
+Status: **PASS for defined color pairs; PASS for owner-reported 200% reflow observation.**
 
-The popup includes a narrow-width reflow rule and all in-scope pages define visible focus indicators. Actual rendered colors, browser state variants, clipping, and two-dimensional scrolling must be observed in live Chrome using the manual validation guide before the full accessibility gate is marked passed.
+The popup includes a narrow-width reflow rule and all in-scope pages define visible focus indicators. On 2026-08-15, the owner reported that required UI remained usable at 200% zoom and that the yellow focus outline was visible against PR #33. Codex did not independently observe the rendered state; browser and observer versions were not supplied.

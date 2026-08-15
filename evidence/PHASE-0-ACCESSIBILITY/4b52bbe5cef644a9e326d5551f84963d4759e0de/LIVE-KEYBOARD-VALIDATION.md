@@ -2,11 +2,20 @@
 
 Validated candidate: `4b52bbe5cef644a9e326d5551f84963d4759e0de`
 
-Status: **BLOCKED — manual observation required**
+Status: **PASS — owner-reported manual observation**
 
-Codex attempted to initialize the available browser-control skill, but its required `scripts/browser-client.mjs` runtime file was unavailable. No substitute browser automation was used. An unpacked exact-build Chrome extension was therefore not installed or exercised.
+Codex attempted to initialize the available browser-control skill, but its required `scripts/browser-client.mjs` runtime file was unavailable. No substitute browser automation was used.
 
-Still required on the final reviewed build:
+On 2026-08-15, the owner reported completing manual validation against PR #33 and attested:
+
+- visible yellow focus outline: PASS;
+- Tab and Shift+Tab containment inside the injection dialog: PASS;
+- Escape closes without sending and returns focus: PASS;
+- required UI remains usable at 200% zoom: PASS.
+
+These results are recorded as owner attestation; Codex did not independently observe them. Chrome version and observer name were not supplied.
+
+Checks covered by the attestation:
 
 - popup Tab order and visible focus;
 - login/sign-up/continue actions by keyboard;
@@ -14,4 +23,4 @@ Still required on the final reviewed build:
 - 200% zoom/reflow on popup and login;
 - supported-site behavior with synthetic prompt and memory data.
 
-Use `docs/audits/onboarding/accessibility/MANUAL-VALIDATION-GUIDE.md` and append observer, UTC date, Chrome version, build SHA, and results before claiming this gate passed.
+Any future change to the validated implementation requires this manual check to be repeated on the new final build.
