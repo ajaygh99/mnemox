@@ -48,8 +48,9 @@ chrome.runtime.onInstalled.addListener(async ({ reason }) => {
   if (reason === 'install' || reason === 'update') {
     const existing = await chrome.storage.local.get(null);
     const defaults = {
-      captureEnabled: true,
-      injectEnabled: true,
+      captureEnabled: false,
+      injectEnabled: false,
+      consentReceipt: null,
       memoryCount: 0,
       memories: [],
       installedAt: Date.now(),
@@ -96,7 +97,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
 
     case 'MNEMOX_UPDATE_SETTINGS':
-      handleUpdateSettings(message.payload, sendResponse);
+      handleUpdateSettings(message.payload, sender, sendResponse);
       return true;
 
     // ── Step 7: Auth messages ──────────────────────────────────────────────
@@ -261,9 +262,12 @@ async function handleMemoryCaptured(payload, sender, sendResponse) {
   // These print in the SERVICE WORKER's own console (chrome://extensions ->
   // Mnemox -> "service worker" link -> Inspect), not the page console, so
   // they're easy to miss if you're only looking at the page's DevTools.
-  console.log('[Mnemox SW] handleMemoryCaptured received:', payload && payload.source, payload && (payload.content || '').slice(0, 60));
+  console.log('[Mnemox SW] Capture request received for source:', payload && payload.source);
   try {
-    const result = await chrome.storage.local.get(['memories', 'memoryCount', 'backendUrl']);
+    const result = await chrome.storage.local.get(['memories', 'memoryCount', 'backendUrl', 'captureEnabled', 'consentReceipt']);
+    if (!hasValidConsent(result.consentReceipt) || result.captureEnabled !== true) {
+      return sendResponse({ success: false, error: 'Capture requires informed consent' });
+    }
     const memories = result.memories || [];
     const count = result.memoryCount || 0;
 
@@ -347,15 +351,33 @@ async function handleGetMemories(payload, sendResponse) {
 
 async function handleGetSettings(sendResponse) {
   const settings = await chrome.storage.local.get([
-    'captureEnabled', 'injectEnabled', 'memoryCount',
+    'captureEnabled', 'injectEnabled', 'consentReceipt', 'memoryCount',
     'backendUrl', 'apiKey', 'authPlan', 'authUser',
   ]);
   sendResponse({ success: true, settings });
 }
 
-async function handleUpdateSettings(patch, sendResponse) {
+async function handleUpdateSettings(patch, sender, sendResponse) {
+  const popupUrl = chrome.runtime.getURL('popup/popup.html');
+  if (!sender || sender.url !== popupUrl) {
+    return sendResponse({ success: false, error: 'Settings changes require the extension popup' });
+  }
+  const current = await chrome.storage.local.get(['consentReceipt']);
+  const receipt = Object.prototype.hasOwnProperty.call(patch, 'consentReceipt')
+    ? patch.consentReceipt : current.consentReceipt;
+  if ((patch.captureEnabled === true || patch.injectEnabled === true) && !hasValidConsent(receipt)) {
+    return sendResponse({ success: false, error: 'Informed consent is required' });
+  }
+  if (patch.consentReceipt === null) {
+    patch = Object.assign({}, patch, { captureEnabled: false, injectEnabled: false });
+  }
   await chrome.storage.local.set(patch);
   sendResponse({ success: true });
+}
+
+function hasValidConsent(receipt) {
+  return !!(receipt && receipt.version === 1 &&
+    typeof receipt.acceptedAt === 'string' && receipt.acceptedAt.length > 0);
 }
 
 // ── Backend API call ──────────────────────────────────────────────────────────

@@ -14,9 +14,9 @@
 
   var CURRENT_SITE = SITE_MAP[window.location.hostname];
   if (!CURRENT_SITE) return;
-  console.log('[Mnemox] Active on ' + CURRENT_SITE);
+  console.log('[Mnemox] Active on supported AI site:', CURRENT_SITE);
 
-  var settings = { captureEnabled: true, injectEnabled: true };
+  var settings = { captureEnabled: false, injectEnabled: false, consentReceipt: null };
   var lastCaptured = '';
   var observer = null;
   var observerTimer = null;
@@ -27,6 +27,11 @@
   var INJECTION_BUDGET_MS = 350;
   var POST_INJECTION_SETTLE_MS = 20;
   var extensionContextInvalidated = false;
+
+  function hasValidConsent() {
+    var receipt = settings.consentReceipt;
+    return !!(receipt && receipt.version === 1 && typeof receipt.acceptedAt === 'string');
+  }
 
   var SITE_CONFIG = {
     chatgpt: {
@@ -141,7 +146,7 @@
     return new Promise(function(resolve) {
       safeSendMessage({ type: 'MNEMOX_GET_SETTINGS' }, function(r) {
         if (r && r.success) settings = Object.assign({}, settings, r.settings);
-        console.log('[Mnemox] Settings loaded on ' + CURRENT_SITE + ':', settings);
+        console.log('[Mnemox] Privacy settings loaded for:', CURRENT_SITE);
         resolve();
       });
     });
@@ -216,22 +221,60 @@
 
   // ── Inject memories into prompt box ──────────────────────────────────────
   function injectMemoriesIntoPrompt(promptEl, originalText, callback) {
-    if (!settings.injectEnabled) return callback(false);
+    if (!hasValidConsent() || !settings.injectEnabled) return callback(false);
     if (!originalText || originalText.trim().length < 3) return callback(false);
 
     searchMemories(originalText, function(memories) {
       if (!memories.length) return callback(false);
 
-      var enriched = buildContextBlock(memories, originalText);
-
-      // Only inject if content actually changed
-      if (enriched === lastInjectedContext) return callback(false);
-      lastInjectedContext = enriched;
-
-      config.setPromptText(promptEl, enriched);
-      console.log('[Mnemox] Injected ' + memories.length + ' memories into prompt');
-      callback(true, memories.length);
+      showInjectionPreview(memories, function(decision, editedContext) {
+        if (decision === 'cancel') return callback(false, 0, true);
+        if (decision === 'reject') return callback(false, 0, false);
+        var enriched = editedContext + '\n\n' + originalText;
+        if (enriched === lastInjectedContext) return callback(false);
+        lastInjectedContext = enriched;
+        config.setPromptText(promptEl, enriched);
+        console.log('[Mnemox] User approved memory injection; count:', memories.length);
+        callback(true, memories.length, false);
+      });
     });
+  }
+
+  function showInjectionPreview(memories, callback) {
+    var existing = document.getElementById('mnemox-injection-preview');
+    if (existing) existing.remove();
+    var contextOnly = buildContextBlock(memories, '').trim();
+    var overlay = document.createElement('div');
+    overlay.id = 'mnemox-injection-preview';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'mnemox-preview-title');
+    overlay.innerHTML =
+      '<div class="mnemox-preview-card">' +
+      '<h2 id="mnemox-preview-title">Review memories before sending</h2>' +
+      '<p>Edit the proposed context, approve it, send without memories, or return to your prompt.</p>' +
+      '<label for="mnemox-preview-context">Proposed memory context</label>' +
+      '<textarea id="mnemox-preview-context"></textarea>' +
+      '<div class="mnemox-preview-actions">' +
+      '<button type="button" id="mnemox-preview-cancel">Return</button>' +
+      '<button type="button" id="mnemox-preview-reject">Send without memories</button>' +
+      '<button type="button" id="mnemox-preview-approve">Approve and send</button>' +
+      '</div></div>';
+    document.body.appendChild(overlay);
+    var textarea = document.getElementById('mnemox-preview-context');
+    textarea.value = contextOnly;
+    function finish(decision) {
+      var edited = textarea.value.trim();
+      overlay.remove();
+      callback(decision, edited);
+    }
+    document.getElementById('mnemox-preview-approve').addEventListener('click', function() { finish('approve'); });
+    document.getElementById('mnemox-preview-reject').addEventListener('click', function() { finish('reject'); });
+    document.getElementById('mnemox-preview-cancel').addEventListener('click', function() { finish('cancel'); });
+    overlay.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') finish('cancel');
+    });
+    textarea.focus();
   }
 
   // ── Toast notification ───────────────────────────────────────────────────
@@ -247,7 +290,13 @@
       'transition:transform 0.3s ease,opacity 0.3s ease;pointer-events:none;max-width:300px;}' +
       '#mnemox-toast.show{transform:translateY(0);opacity:1;}' +
       '#mnemox-toast .mnemox-icon{font-size:16px;flex-shrink:0;}' +
-      '#mnemox-toast .mnemox-sub{font-size:11px;color:#9ca3af;margin-top:1px;}';
+      '#mnemox-toast .mnemox-sub{font-size:11px;color:#9ca3af;margin-top:1px;}' +
+      '#mnemox-injection-preview{position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:20px;}' +
+      '.mnemox-preview-card{width:min(620px,100%);background:#111827;color:#f9fafb;border:1px solid #7c3aed;border-radius:12px;padding:18px;font-family:system-ui,sans-serif;}' +
+      '.mnemox-preview-card h2{font-size:18px;margin:0 0 8px}.mnemox-preview-card p,.mnemox-preview-card label{font-size:13px;display:block;margin:0 0 8px;}' +
+      '#mnemox-preview-context{width:100%;min-height:180px;background:#030712;color:#f9fafb;border:1px solid #6b7280;border-radius:6px;padding:10px;}' +
+      '.mnemox-preview-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}.mnemox-preview-actions button{padding:8px 12px;border-radius:6px;border:1px solid #6b7280;cursor:pointer;}' +
+      '#mnemox-preview-approve{background:#7c3aed;color:white;}';
     document.head.appendChild(style);
   }
 
@@ -274,11 +323,7 @@
     // these logs turn the next test into an actual diagnosis instead of
     // another guess. Safe to remove once the real failure point is found
     // and fixed; until then this is cheap and only runs on Enter/submit.
-    if (!settings.captureEnabled) {
-      console.log('[Mnemox] Capture skipped: captureEnabled is false', settings);
-      return;
-    }
-    var original = text;
+    if (!hasValidConsent() || !settings.captureEnabled) return;
     text = text.trim();
     // Strip injected context before saving — save only the user's original prompt
     var markerIdx = text.indexOf('[Mnemox Context');
@@ -289,18 +334,15 @@
       if (endIdx !== -1) text = text.slice(endIdx + endMarker.length).trim();
     }
     if (!text || text.length < 4) {
-      console.log('[Mnemox] Capture skipped: text too short after trim/strip.',
-        'original=' + JSON.stringify(original), 'stripped=' + JSON.stringify(text));
       return;
     }
     if (text === lastCaptured) {
-      console.log('[Mnemox] Capture skipped: duplicate of last capture.', text.slice(0, 60));
       return;
     }
     lastCaptured = text;
 
     var stored = text.length > 1000 ? text.slice(0, 1000) + '...' : text;
-    console.log('[Mnemox] Sending capture to service worker:', stored.slice(0, 60));
+    console.log('[Mnemox] Sending consented capture to service worker.');
     safeSendMessage({
       type: 'MNEMOX_MEMORY_CAPTURED',
       payload: { content: stored, source: CURRENT_SITE },
@@ -310,9 +352,8 @@
         return;
       }
       if (response && response.success) {
-        console.log('[Mnemox] Capture confirmed saved, id=' + response.id);
-        var preview = text.slice(0, 45) + (text.length > 45 ? '...' : '');
-        showToast('Memory saved', '"' + preview + '"');
+        console.log('[Mnemox] Capture confirmed saved.');
+        showToast('Memory saved', 'Prompt content is hidden from diagnostics');
       } else {
         console.error('[Mnemox] Capture rejected by service worker:', response);
       }
@@ -344,9 +385,7 @@
     // and structure at wire-time, unconditionally, so this is visible
     // regardless of whether a later capture attempt succeeds or fails.
     try {
-      console.log('[Mnemox] Prompt wired on ' + CURRENT_SITE + '. Matched element:', promptEl,
-        'tag=' + promptEl.tagName, 'class=' + promptEl.className,
-        'outerHTML(300)=' + promptEl.outerHTML.slice(0, 300));
+      console.log('[Mnemox] Prompt control connected on:', CURRENT_SITE);
     } catch (err) {
       console.log('[Mnemox] Prompt wired on ' + CURRENT_SITE + ' (element logging failed: ' + err.message + ')');
     }
@@ -411,11 +450,8 @@
         // 'input'-tracked snapshot when the live read comes back empty/too
         // short, which is exactly what happens on Claude.
         var text = liveText.length >= 3 ? liveText : lastKnownText;
-        console.log('[Mnemox] Enter pressed on ' + CURRENT_SITE + '. liveText length: ' + liveText.length +
-          ', lastKnownText length: ' + lastKnownText.length + ', using: ' + (liveText.length >= 3 ? 'live' : 'lastKnown') +
-          ', preview: ' + JSON.stringify(text.slice(0, 60)));
+        console.log('[Mnemox] Submit detected; prompt content omitted from diagnostics.');
         if (!text || text.length < 3) {
-          console.log('[Mnemox] Enter handler bailed: text too short (len=' + text.length + ') even after lastKnownText fallback');
           return;
         }
 
@@ -433,11 +469,12 @@
         setTimeout(function() { capturePrompt(text); }, 80);
 
         // Step 2: inject memories BEFORE submit
-        if (settings.injectEnabled) {
+        if (hasValidConsent() && settings.injectEnabled) {
           e.preventDefault();   // pause submit
           e.stopPropagation();
 
-          injectMemoriesIntoPrompt(promptEl, text, function(injected, count) {
+          injectMemoriesIntoPrompt(promptEl, text, function(injected, count, cancelled) {
+            if (cancelled) return;
             if (injected) {
               showToast(count + ' memories added to context', 'AI now knows your history');
             }
@@ -485,6 +522,19 @@
     var text = config.getPromptText(promptEl).trim();
     console.log('[Mnemox] Submit button clicked on ' + CURRENT_SITE + '.');
     setTimeout(function() { capturePrompt(text); }, 80);
+    if (!hasValidConsent() || !settings.injectEnabled || text.length < 3) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    injectMemoriesIntoPrompt(promptEl, text, function(injected, count, cancelled) {
+      if (cancelled) return;
+      if (injected) showToast(count + ' memories added to context', 'Approved context will be sent');
+      setTimeout(function() {
+        mnemoxOwnClick = true;
+        btn.click();
+        mnemoxOwnClick = false;
+      }, POST_INJECTION_SETTLE_MS);
+    });
   }
 
   // ── MutationObserver: handles SPA re-renders ─────────────────────────────

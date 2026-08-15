@@ -84,6 +84,10 @@
       background: linear-gradient(135deg, #f59e0b, #d97706);
       color: #fff;
     }
+    .consent-panel { background:#1a1a2e;border:1px solid #7c3aed;border-radius:10px;padding:12px;margin-bottom:12px; }
+    .consent-panel p { font-size:12px;line-height:1.4;color:#d1d5db;margin-bottom:10px; }
+    .consent-panel label { display:flex;gap:8px;align-items:flex-start;font-size:12px;margin-bottom:10px; }
+    .btn-secondary { background:#374151;color:#fff; }
   </style>
 </head>
 <body>
@@ -109,6 +113,13 @@
     <div class="limit-notice" id="limit-notice"></div>
   </div>
 
+  <section class="consent-panel" id="consent-panel" aria-labelledby="consent-title">
+    <div class="toggle-label" id="consent-title">Choose how Mnemox uses prompts</div>
+    <p>Mnemox can save prompts as memories and propose relevant memories before sending. Both remain off until you agree. You can review every proposed injection and withdraw consent anytime.</p>
+    <label><input type="checkbox" id="consent-checkbox"> I understand and agree to local prompt capture and reviewed memory injection.</label>
+    <button class="btn btn-primary" id="consent-btn" disabled>Enable capture and reviewed injection</button>
+  </section>
+
   <div class="toggles-section">
     <div class="toggle-row">
       <div>
@@ -131,6 +142,8 @@
       </label>
     </div>
   </div>
+
+  <button class="btn btn-secondary" id="withdraw-consent-btn" style="display:none">Disable features and withdraw consent</button>
 
   <button class="btn btn-primary" id="view-memories-btn">📚 View Memories</button>
   <button class="btn btn-upgrade" id="upgrade-btn" style="display:none">⚡ Upgrade to Pro</button>
