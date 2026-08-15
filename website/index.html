@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mnemox – Your AI Memory, Everywhere</title>
-  <meta name="description" content="One memory layer across ChatGPT, Claude, Gemini and Copilot. Stop repeating yourself. Free forever." />
+  <meta name="description" content="A Chrome extension for consent-based memory capture and reviewed memory injection across supported AI chat sites." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%237c3aed'/><text y='.9em' font-size='70' x='15' fill='white' font-family='sans-serif' font-weight='bold'>M</text></svg>" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -229,7 +229,7 @@
 <section class="hero">
   <div class="badge">✦ Available now on the Chrome Web Store</div>
   <h1>Your AI memory,<br/><span>everywhere.</span></h1>
-  <p>Stop repeating yourself. Mnemox gives ChatGPT, Claude, Gemini, and Copilot a shared memory of who you are and what you're building.</p>
+  <p>Save useful context with your consent, then review proposed memories before they are added to prompts on supported AI chat sites.</p>
   <div class="hero-btns">
     <a class="btn-primary" href="https://chromewebstore.google.com/detail/mnemox-%E2%80%93-universal-ai-mem/oningjpokiajciealpkkofdldcmnnfbf" target="_blank" rel="noopener">Add Universal Memory to Chrome — Free</a>
     <a class="btn-secondary" href="#how">See how it works</a>
@@ -246,8 +246,8 @@
 <section id="how">
   <div class="container">
     <div class="section-tag">How it works</div>
-    <h2 class="section-title">Works in 60 seconds</h2>
-    <p class="section-sub">No setup. No configuration. Just install and every AI gets smarter about you.</p>
+    <h2 class="section-title">Choose what Mnemox can do</h2>
+    <p class="section-sub">Install the extension, review the consent choices, and keep capture and injection off unless you enable them.</p>
     <div class="steps">
       <div class="step">
         <div class="step-num">1</div>
@@ -257,12 +257,12 @@
       <div class="step">
         <div class="step-num">2</div>
         <h3>Chat normally</h3>
-        <p>Mnemox silently captures context as you use ChatGPT, Claude, Gemini, or Copilot.</p>
+        <p>After informed consent, you can enable prompt capture on supported sites and turn it off again at any time.</p>
       </div>
       <div class="step">
         <div class="step-num">3</div>
-        <h3>AI remembers you</h3>
-        <p>Next time you open any AI, Mnemox automatically injects your relevant memories.</p>
+        <h3>Review before sending</h3>
+        <p>When injection is enabled, Mnemox proposes relevant memories so you can edit, approve, reject, or return to your prompt before anything is added.</p>
       </div>
     </div>
   </div>
@@ -278,27 +278,27 @@
       <div class="feature-card">
         <div class="feature-icon">🔁</div>
         <h3>Cross-AI Memory</h3>
-        <p>One memory store shared across ChatGPT, Claude, Gemini, and Copilot. Switch tools without losing context.</p>
+        <p>One local memory store is configured for supported ChatGPT, Claude, Gemini, and Copilot pages. Live support may vary as those sites change.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🧠</div>
         <h3>Semantic Search</h3>
-        <p>Powered by vector embeddings. Mnemox finds the most relevant memories — not just keyword matches.</p>
+        <p>Signed-in backend search can use vector embeddings. Local unsigned use falls back to keyword matching.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">⚡</div>
-        <h3>Auto-Injection</h3>
-        <p>Relevant context is injected into your AI prompt automatically. No copy-pasting needed.</p>
+        <h3>Reviewed Injection</h3>
+        <p>Injection requires consent and stays off until enabled. Review and edit each proposed context before approving it.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🔒</div>
-        <h3>Privacy First</h3>
-        <p>Your memories are stored under your account only.  We never train on your data.</p>
+        <h3>Local mode</h3>
+        <p>Use local storage without signing in. Account, cloud sync, and backend semantic-search paths are optional and send data beyond the browser when used.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">👥</div>
         <h3>Team Memory</h3>
-        <p>Share a memory namespace with your team so everyone's AI has the same context. Pro feature.</p>
+        <p>Coming soon - not currently available.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">📊</div>
@@ -313,8 +313,8 @@
 <section id="pricing">
   <div class="container">
     <div class="section-tag">Pricing</div>
-    <h2 class="section-title">Simple, honest pricing</h2>
-    <p class="section-sub">Start free. Upgrade when you need more.</p>
+    <h2 class="section-title">Current access</h2>
+    <p class="section-sub">Local unsigned use is currently available at no charge. Paid plans are not currently available.</p>
     <div class="pricing-grid">
       <div class="plan">
         <div class="plan-name">Free</div>
@@ -322,38 +322,30 @@
         <div class="plan-desc">Perfect for individuals getting started.</div>
         <ul class="plan-features">
           <li>50 memories</li>
-          <li>All 4 AI platforms</li>
-          <li>Semantic search</li>
-          <li>Auto-injection</li>
+          <li>Configured adapters for 4 AI chat sites</li>
+          <li>Local keyword search</li>
+          <li>Consent-based, reviewed injection</li>
         </ul>
         <a class="plan-btn plan-btn-outline" href="https://chromewebstore.google.com/detail/mnemox-%E2%80%93-universal-ai-mem/oningjpokiajciealpkkofdldcmnnfbf" target="_blank" rel="noopener">Get started free</a>
       </div>
       <div class="plan popular">
         <div class="popular-badge">Most Popular</div>
-        <div class="plan-name">Pro</div>
-        <div class="plan-price">$9 <span>/ month</span></div>
-        <div class="plan-desc">Unlimited memory for power users.</div>
+        <div class="plan-name">Pro - Coming soon</div>
+        <div class="plan-price">Not currently available</div>
+        <div class="plan-desc">Planned capabilities are not offered for purchase.</div>
         <ul class="plan-features">
-          <li>Unlimited memories</li>
-          <li>All 4 AI platforms</li>
-          <li>Priority semantic search</li>
-          <li>Auto-injection</li>
-          <li>Memory analytics</li>
+          <li>Plan details pending verification</li>
         </ul>
-        <a class="plan-btn plan-btn-primary" href="https://chromewebstore.google.com/detail/mnemox-%E2%80%93-universal-ai-mem/oningjpokiajciealpkkofdldcmnnfbf" target="_blank" rel="noopener">Install, then choose Pro</a>
+        <span class="plan-btn plan-btn-primary" aria-disabled="true">Not currently available</span>
       </div>
       <div class="plan">
-        <div class="plan-name">Team</div>
-        <div class="plan-price">$29 <span>/ month</span></div>
-        <div class="plan-desc">Shared memory namespace for your whole team.</div>
+        <div class="plan-name">Team - Coming soon</div>
+        <div class="plan-price">Not currently available</div>
+        <div class="plan-desc">Team Memory is not currently available.</div>
         <ul class="plan-features">
-          <li>Unlimited memories</li>
-          <li>Shared team namespace</li>
-          <li>All Pro features</li>
-          <li>Team invite management</li>
-          <li>Priority support</li>
+          <li>Plan details pending verification</li>
         </ul>
-        <a class="plan-btn plan-btn-outline" href="https://chromewebstore.google.com/detail/mnemox-%E2%80%93-universal-ai-mem/oningjpokiajciealpkkofdldcmnnfbf" target="_blank" rel="noopener">Install, then choose Team</a>
+        <span class="plan-btn plan-btn-outline" aria-disabled="true">Not currently available</span>
       </div>
     </div>
   </div>
@@ -367,33 +359,33 @@
     <div class="faq-list">
       <div class="faq-item">
         <button class="faq-q" onclick="toggleFaq(this)">
-          Is Mnemox really free? <span class="faq-arrow">▾</span>
+          What can I use without paying? <span class="faq-arrow">▾</span>
         </button>
-        <div class="faq-a">Yes. The free plan gives you 50 memories, all 4 AI platforms, and full semantic search — no credit card required.</div>
+        <div class="faq-a">Local unsigned use is currently available at no charge with a tracked 50-memory limit and keyword search. Pricing and availability may change; paid plans are not currently available.</div>
       </div>
       <div class="faq-item">
         <button class="faq-q" onclick="toggleFaq(this)">
           Which AI tools does Mnemox support? <span class="faq-arrow">▾</span>
         </button>
-        <div class="faq-a">Mnemox works with ChatGPT, Claude, Gemini, and Microsoft Copilot. More platforms are coming soon.</div>
+        <div class="faq-a">The extension has configured adapters for ChatGPT, Claude, Gemini, and Microsoft Copilot. These sites can change, so live compatibility must be verified against the current extension build.</div>
       </div>
       <div class="faq-item">
         <button class="faq-q" onclick="toggleFaq(this)">
-          Is my data private? <span class="faq-arrow">▾</span>
+          Where can my data go? <span class="faq-arrow">▾</span>
         </button>
-        <div class="faq-a">Yes. Your memories are stored in your account only. We do not share, sell, or train on your data. You can delete all memories at any time from the dashboard.</div>
+        <div class="faq-a">Unsigned use stores memories locally. If you sign in or configure connected features, cloud sync and backend semantic search can send memory content beyond the browser. Review the Privacy Policy for details.</div>
       </div>
       <div class="faq-item">
         <button class="faq-q" onclick="toggleFaq(this)">
-          How does the auto-injection work? <span class="faq-arrow">▾</span>
+          How does reviewed injection work? <span class="faq-arrow">▾</span>
         </button>
-        <div class="faq-a">When you open an AI chat, Mnemox searches your memory store for relevant context and prepends it to your prompt — automatically. You can toggle this on or off from the popup.</div>
+        <div class="faq-a">Injection remains off until you provide consent and enable it. Before proposed memory context is added, you can edit, approve, reject, or return to your prompt.</div>
       </div>
       <div class="faq-item">
         <button class="faq-q" onclick="toggleFaq(this)">
           Can I use Mnemox with my team? <span class="faq-arrow">▾</span>
         </button>
-        <div class="faq-a">Yes. The Team plan gives your whole team a shared memory namespace so every team member's AI has the same context about your company and projects.</div>
+        <div class="faq-a">No. Team Memory is not currently available.</div>
       </div>
     </div>
   </div>
@@ -403,38 +395,38 @@
 <section id="privacy-promise">
   <div class="container">
     <div class="section-tag">Privacy & Security</div>
-    <h2 class="section-title">Your data is yours. Always.</h2>
-    <p class="section-sub">We built Mnemox with privacy as the foundation, not an afterthought.</p>
+    <h2 class="section-title">Review the controls and data paths</h2>
+    <p class="section-sub">Capture and injection require consent. Optional account and backend features have different storage and network boundaries.</p>
     <div class="privacy-cards">
       <div class="privacy-card">
         <div class="icon">🚫</div>
-        <h3>We never sell your data</h3>
-        <p>Your memories and prompts are never sold, rented, or shared with advertisers or third parties.</p>
+        <h3>Consent before capture</h3>
+        <p>Prompt capture remains off until you accept the informed-consent choice and enable it.</p>
       </div>
       <div class="privacy-card">
         <div class="icon">🤖</div>
-        <h3>We never train on your data</h3>
-        <p>Your conversations are not used to train any AI model — ours or anyone else's.</p>
+        <h3>Review before injection</h3>
+        <p>Edit, approve, reject, or return to your prompt before proposed memory context is added.</p>
       </div>
       <div class="privacy-card">
         <div class="icon">🔐</div>
-        <h3>Encrypted & isolated</h3>
-        <p>Your memories are stored under your account only, secured with JWT authentication and row-level security.</p>
+        <h3>Know the storage boundary</h3>
+        <p>Unsigned use stores memories locally. Signing in or configuring backend features can use account and cloud services.</p>
       </div>
       <div class="privacy-card">
         <div class="icon">🗑️</div>
-        <h3>Delete anytime</h3>
-        <p>Delete individual memories or your entire account at any time from the dashboard. No questions asked.</p>
+        <h3>Memory deletion controls</h3>
+        <p>Delete individual local memories or clear local memories from the dashboard. Account deletion follows the process in the Privacy Policy.</p>
       </div>
       <div class="privacy-card">
         <div class="icon">👁️</div>
-        <h3>You control injection</h3>
-        <p>Auto-injection can be toggled off anytime from the popup. You decide what gets shared with AI tools.</p>
+        <h3>Injection stays optional</h3>
+        <p>Injection requires consent, can be toggled off, and presents proposed context for review before sending.</p>
       </div>
       <div class="privacy-card">
         <div class="icon">📋</div>
-        <h3>Full transparency</h3>
-        <p>Our <a href="#" onclick="showPrivacy(); return false;" style="color:var(--purple-light)">Privacy Policy</a> clearly explains every piece of data we collect and why.</p>
+        <h3>Read the policy</h3>
+        <p>Review the <a href="#" onclick="showPrivacy(); return false;" style="color:var(--purple-light)">Privacy Policy</a> for the documented data practices and contact process.</p>
       </div>
     </div>
     <div class="disclaimer">
@@ -457,7 +449,7 @@
 <section class="cta-section">
   <div class="container">
     <h2>Ready to stop repeating yourself?</h2>
-    <p>Add Mnemox to Chrome for free — no credit card, works in 60 seconds.</p>
+    <p>Add Mnemox to Chrome, review the consent choices, and decide whether to enable capture or reviewed injection.</p>
     <a class="btn-primary" href="https://chromewebstore.google.com/detail/mnemox-%E2%80%93-universal-ai-mem/oningjpokiajciealpkkofdldcmnnfbf" target="_blank" rel="noopener">Add Universal Memory to Chrome — Free</a>
   </div>
 </section>
@@ -545,7 +537,7 @@
 <section class="hero" style="min-height: auto; padding: 8rem 1.5rem 4rem;">
   <div class="badge">✦ Free Chrome Extension · No account needed</div>
   <h1>Write better prompts.<br/><span>Instantly.</span></h1>
-  <p>Mnemox Prompt Coach scores every prompt as you type — on ChatGPT, Claude, Gemini, and more — and shows you exactly what to fix. Nothing leaves your browser.</p>
+  <p>Mnemox Prompt Coach provides in-page prompt feedback on configured AI chat sites. Review its privacy policy and optional feature settings before use.</p>
   <div class="hero-btns">
     <a class="btn-primary" href="https://chromewebstore.google.com/detail/ebgobnpgohhdffehpdljbpbmbjobklcm" target="_blank">Add to Chrome — Free</a>
     <a class="btn-secondary" href="#ext-how">See how it works</a>
@@ -583,8 +575,8 @@
 <section id="ext-how" style="background: var(--bg2);">
   <div class="container">
     <div class="section-tag">How it works</div>
-    <h2 class="section-title">Works in under a minute</h2>
-    <p class="section-sub">No setup. No configuration. No account.</p>
+    <h2 class="section-title">Install and review the controls</h2>
+    <p class="section-sub">Core use does not require an account; optional connected features may have different data paths.</p>
     <div class="steps">
       <div class="step">
         <div class="step-num">1</div>
@@ -594,7 +586,7 @@
       <div class="step">
         <div class="step-num">2</div>
         <h3>Type normally</h3>
-        <p>Open ChatGPT, Claude, Gemini, or any AI chat. A small score badge appears as you type.</p>
+        <p>Open a configured AI chat site. When the current site adapter matches, a score badge appears as you type.</p>
       </div>
       <div class="step">
         <div class="step-num">3</div>
@@ -641,7 +633,7 @@
 <section style="background: var(--bg2);">
   <div class="container">
     <div class="section-tag">Privacy</div>
-    <h2 class="section-title">Nothing leaves your browser by default</h2>
+    <h2 class="section-title">Understand each feature's data path</h2>
     <div class="privacy-cards" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
       <div class="privacy-card">
         <div class="icon">🚫</div>
@@ -650,8 +642,8 @@
       </div>
       <div class="privacy-card">
         <div class="icon">🔒</div>
-        <h3>Scoring runs locally</h3>
-        <p>All prompt and response scoring happens in your browser.</p>
+        <h3>Check feature settings</h3>
+        <p>Review the extension settings and privacy policy before enabling optional history, memory, account, or backend features.</p>
       </div>
       <div class="privacy-card">
         <div class="icon">👁️</div>
@@ -666,7 +658,7 @@
 <section class="cta-section">
   <div class="container">
     <h2>Ready to stop guessing why your prompts fall flat?</h2>
-    <p>Free forever. No account. Works in under a minute.</p>
+    <p>Install at no charge and review the available controls before use.</p>
     <a class="btn-primary" href="https://chromewebstore.google.com/detail/ebgobnpgohhdffehpdljbpbmbjobklcm" target="_blank">Add to Chrome — Free</a>
     <p style="margin-top: 1.5rem; font-size: .9rem;"><a href="/" onclick="showMain(); return false;" style="color: var(--muted)">Looking for cross-AI memory instead? → Mnemox Memory</a></p>
   </div>
@@ -681,7 +673,7 @@
       <a class="nav-logo" href="#" onclick="showMain()" style="margin-bottom:.5rem">
         <div class="logo-circle">M</div> Mnemox
       </a>
-      <p>One memory layer across all your AI tools. Free forever.</p>
+      <p>Consent-based memory capture and reviewed injection for supported AI chat sites.</p>
     </div>
     <div class="footer-links">
       <h4>Product</h4>
