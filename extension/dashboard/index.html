@@ -17,7 +17,7 @@
     .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
     .brand-icon { font-size: 22px; }
     .brand-name { font-size: 18px; font-weight: 800; color: #a78bfa; letter-spacing: 1px; }
-    .brand-tag { font-size: 9px; color: #4b5563; letter-spacing: 1.5px; }
+    .brand-tag { font-size: 9px; color: #9ca3af; letter-spacing: 1.5px; }
     .nav-btn { display: flex; align-items: center; gap: 10px; padding: 9px 12px;
                border-radius: 8px; border: none; background: none; color: #9ca3af;
                font-size: 13px; cursor: pointer; width: 100%; text-align: left; transition: all 0.15s; }
@@ -34,7 +34,7 @@
     /* Header */
     .page-header { margin-bottom: 24px; }
     .page-title { font-size: 22px; font-weight: 700; color: #f3f4f6; }
-    .page-sub { font-size: 13px; color: #6b7280; margin-top: 4px; }
+    .page-sub { font-size: 13px; color: #9ca3af; margin-top: 4px; }
 
     /* Source filter chips */
     .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
@@ -52,6 +52,7 @@
     .search-input { flex: 1; background: #13132a; border: 1px solid #1e1e3a;
                     color: #e5e7eb; padding: 9px 14px; border-radius: 8px; font-size: 13px; outline: none; }
     .search-input:focus { border-color: #7c3aed; }
+    button:focus-visible,input:focus-visible { outline:3px solid #fbbf24;outline-offset:3px; }
 
     /* Memory list */
     .memory-list { display: flex; flex-direction: column; gap: 8px; }
@@ -71,14 +72,14 @@
     .memory-text { font-size: 13px; color: #d1d5db; line-height: 1.5;
                    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .memory-text.expanded { white-space: normal; }
-    .memory-meta { font-size: 11px; color: #4b5563; margin-top: 5px; }
+    .memory-meta { font-size: 11px; color: #9ca3af; margin-top: 5px; }
     .memory-actions { display: flex; gap: 6px; flex-shrink: 0; }
     .btn-icon { background: none; border: none; cursor: pointer; padding: 4px 6px;
                 border-radius: 6px; font-size: 14px; opacity: 0.5; transition: all 0.15s; }
     .btn-icon:hover { opacity: 1; background: #1e1e3a; }
     .btn-delete:hover { background: #450a0a; color: #f87171; }
 
-    .empty-state { text-align: center; padding: 60px 20px; color: #4b5563; }
+    .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; }
     .empty-icon { font-size: 48px; margin-bottom: 12px; }
     .empty-text { font-size: 14px; }
 
@@ -91,14 +92,14 @@
     .field input { width: 100%; background: #0f0f1a; border: 1px solid #1e1e3a;
                    color: #e5e7eb; padding: 9px 12px; border-radius: 8px; font-size: 13px; outline: none; }
     .field input:focus { border-color: #7c3aed; }
-    .field-hint { font-size: 11px; color: #4b5563; margin-top: 4px; }
+    .field-hint { font-size: 11px; color: #9ca3af; margin-top: 4px; }
     .toggle-row { display: flex; justify-content: space-between; align-items: center;
                   padding: 10px 0; border-bottom: 1px solid #1a1a2e; }
     .toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
     .toggle-label { font-size: 13px; color: #d1d5db; }
-    .toggle-desc { font-size: 11px; color: #4b5563; margin-top: 2px; }
-    .toggle { width: 36px; height: 20px; background: #374151; border-radius: 10px;
-              cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0; }
+    .toggle-desc { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+    .toggle { width:36px;height:20px;background:#374151;border-radius:10px;border:0;padding:0;
+              cursor:pointer;position:relative;transition:background .2s;flex-shrink:0; }
     .toggle.on { background: #7c3aed; }
     .toggle::after { content: ''; position: absolute; top: 3px; left: 3px;
                      width: 14px; height: 14px; background: white; border-radius: 50%;
@@ -161,7 +162,7 @@
       </div>
 
       <div class="search-row">
-        <input class="search-input" id="mem-search" placeholder="Filter memories..." />
+        <input class="search-input" id="mem-search" aria-label="Filter memories" placeholder="Filter memories..." />
       </div>
 
       <div class="memory-list" id="memory-list">
@@ -179,7 +180,7 @@
         <div class="page-sub">Find memories by meaning, not just keywords</div>
       </div>
       <div class="search-row">
-        <input class="search-input" id="sem-query" placeholder="e.g. machine learning project, budget discussions..." />
+        <input class="search-input" id="sem-query" aria-label="Search memories by meaning" placeholder="e.g. machine learning project, budget discussions..." />
         <button class="btn-save" id="sem-search-btn">Search</button>
       </div>
       <div class="memory-list" id="search-results">
@@ -200,17 +201,17 @@
       <div class="settings-section">
         <div class="settings-title">🔗 Backend Connection</div>
         <div class="field">
-          <label>Backend URL</label>
-          <input id="s-backend-url" placeholder="https://mnemox-production.up.railway.app" />
-          <div class="field-hint">Your FastAPI server. Use Railway/Render URL in production.</div>
+          <label for="s-backend-url">Backend URL</label>
+          <input id="s-backend-url" aria-describedby="backend-url-hint" placeholder="https://mnemox-production.up.railway.app" />
+          <div class="field-hint" id="backend-url-hint">Your FastAPI server. Use Railway/Render URL in production.</div>
         </div>
         <div class="field">
-          <label>API Secret Key</label>
-          <input id="s-api-key" type="password" placeholder="Your API_SECRET_KEY from .env" />
-          <div class="field-hint">Must match API_SECRET_KEY in your backend .env file.</div>
+          <label for="s-api-key">API Secret Key</label>
+          <input id="s-api-key" type="password" aria-describedby="api-key-hint" placeholder="Your API_SECRET_KEY from .env" />
+          <div class="field-hint" id="api-key-hint">Must match API_SECRET_KEY in your backend .env file.</div>
         </div>
         <button class="btn-save" id="save-backend-btn">Save & Test Connection</button>
-        <div class="status-msg" id="conn-status"></div>
+        <div class="status-msg" id="conn-status" role="status" aria-live="polite" aria-atomic="true"></div>
       </div>
 
       <div class="settings-section">
@@ -220,14 +221,14 @@
             <div class="toggle-label">Auto-capture prompts</div>
             <div class="toggle-desc">Save every prompt you send as a memory</div>
           </div>
-          <div class="toggle on" id="t-capture"></div>
+          <button type="button" class="toggle on" id="t-capture" role="switch" aria-checked="true" aria-label="Auto-capture prompts"></button>
         </div>
         <div class="toggle-row">
           <div>
             <div class="toggle-label">Auto-inject memories</div>
             <div class="toggle-desc">Prepend relevant context before sending prompts</div>
           </div>
-          <div class="toggle on" id="t-inject"></div>
+          <button type="button" class="toggle on" id="t-inject" role="switch" aria-checked="true" aria-label="Auto-inject memories"></button>
         </div>
       </div>
 
@@ -237,7 +238,7 @@
           Permanently delete all locally stored memories. This cannot be undone.
         </p>
         <button class="btn-danger" id="clear-all-btn">Clear All Memories</button>
-        <div class="status-msg" id="clear-status"></div>
+        <div class="status-msg" id="clear-status" role="status" aria-live="polite" aria-atomic="true"></div>
       </div>
     </div>
 

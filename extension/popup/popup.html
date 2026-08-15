@@ -24,11 +24,11 @@
     .plan-badge.plan-pro { background: #4c1d95; color: #c4b5fd; }
     .plan-badge.plan-team { background: #1e3a5f; color: #93c5fd; }
     .user-row {
-      font-size: 11px; color: #4b5563; margin-bottom: 14px;
+      font-size: 11px; color: #9ca3af; margin-bottom: 14px;
       display: flex; justify-content: space-between; align-items: center;
     }
     .signout-link {
-      font-size: 11px; color: #6b7280; cursor: pointer;
+      font-size: 11px; color: #9ca3af; cursor: pointer;
       background: none; border: none; padding: 0;
     }
     .signout-link:hover { color: #f87171; }
@@ -48,7 +48,7 @@
       margin-bottom: 12px; text-align: center;
     }
     .stat-num { font-size: 28px; font-weight: 700; color: #a78bfa; }
-    .stat-label { font-size: 11px; color: #6b7280; margin-top: 2px; }
+    .stat-label { font-size: 11px; color: #9ca3af; margin-top: 2px; }
     .limit-notice {
       font-size: 11px; color: #9ca3af; margin-top: 6px; display: none;
     }
@@ -58,9 +58,9 @@
     }
     .toggle-row:last-of-type { border-bottom: none; }
     .toggle-label { font-size: 13px; }
-    .toggle-sub { font-size: 11px; color: #6b7280; }
+    .toggle-sub { font-size: 11px; color: #9ca3af; }
     .toggle { position: relative; width: 36px; height: 20px; }
-    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle input { position:absolute;opacity:0;width:1px;height:1px; }
     .slider {
       position: absolute; cursor: pointer; inset: 0;
       background: #374151; border-radius: 20px; transition: 0.2s;
@@ -88,27 +88,31 @@
     .consent-panel p { font-size:12px;line-height:1.4;color:#d1d5db;margin-bottom:10px; }
     .consent-panel label { display:flex;gap:8px;align-items:flex-start;font-size:12px;margin-bottom:10px; }
     .btn-secondary { background:#374151;color:#fff; }
+    button:focus-visible,input:focus-visible,.toggle input:focus-visible + .slider {
+      outline:3px solid #fbbf24;outline-offset:3px;
+    }
+    @media (max-width:320px) { body { width:100%;min-width:0; } }
   </style>
 </head>
 <body>
   <div class="header">
     <div class="logo-row">
-      <span>🧠</span>
+      <span aria-hidden="true">🧠</span>
       <span class="logo-text">Mnemox</span>
     </div>
     <span class="plan-badge" id="plan-badge">Free</span>
   </div>
 
   <div class="user-row">
-    <span id="user-email" style="color:#6b7280"></span>
+    <span id="user-email"></span>
     <button class="signout-link" id="signout-btn">Sign out</button>
     <button class="signin-link" id="signin-link">Sign in</button>
   </div>
 
-  <div class="site-badge" id="site-badge">Detecting…</div>
+  <div class="site-badge" id="site-badge" role="status" aria-live="polite">Detecting…</div>
 
   <div class="stat-box">
-    <div class="stat-num" id="memory-count">0</div>
+    <div class="stat-num" id="memory-count" role="status" aria-live="polite" aria-atomic="true">0</div>
     <div class="stat-label">memories saved</div>
     <div class="limit-notice" id="limit-notice"></div>
   </div>
@@ -123,22 +127,22 @@
   <div class="toggles-section">
     <div class="toggle-row">
       <div>
-        <div class="toggle-label">Capture prompts</div>
-        <div class="toggle-sub">Auto-save what you type</div>
+        <div class="toggle-label" id="capture-label">Capture prompts</div>
+        <div class="toggle-sub" id="capture-description">Auto-save what you type</div>
       </div>
       <label class="toggle">
-        <input type="checkbox" id="capture-toggle" checked>
-        <span class="slider"></span>
+        <input type="checkbox" id="capture-toggle" checked aria-labelledby="capture-label" aria-describedby="capture-description">
+        <span class="slider" aria-hidden="true"></span>
       </label>
     </div>
     <div class="toggle-row">
       <div>
-        <div class="toggle-label">Inject memories</div>
-        <div class="toggle-sub">Add context to prompts</div>
+        <div class="toggle-label" id="inject-label">Inject memories</div>
+        <div class="toggle-sub" id="inject-description">Add context to prompts</div>
       </div>
       <label class="toggle">
-        <input type="checkbox" id="inject-toggle" checked>
-        <span class="slider"></span>
+        <input type="checkbox" id="inject-toggle" checked aria-labelledby="inject-label" aria-describedby="inject-description">
+        <span class="slider" aria-hidden="true"></span>
       </label>
     </div>
   </div>
@@ -148,7 +152,7 @@
   <button class="btn btn-primary" id="view-memories-btn">📚 View Memories</button>
   <button class="btn btn-upgrade" id="upgrade-btn" style="display:none">⚡ Upgrade to Pro</button>
 
-  <div id="popup-version" style="font-size:10px;color:#374151;text-align:center;margin-top:10px;">Mnemox</div>
+  <div id="popup-version" style="font-size:10px;color:#9ca3af;text-align:center;margin-top:10px;">Mnemox</div>
 
   <script src="popup.js"></script>
 </body>
